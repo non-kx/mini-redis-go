@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strings"
 )
 
 type IClient interface {
@@ -37,7 +38,7 @@ func (c *Client) Send(msg string) ([]byte, error) {
 		return nil, err
 	}
 
-	return []byte(resp), nil
+	return []byte(strings.TrimSuffix(resp, "\n")), nil
 }
 
 func (c *Client) Close() error {

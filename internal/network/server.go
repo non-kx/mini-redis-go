@@ -2,11 +2,14 @@ package network
 
 import (
 	"bufio"
-	"fmt"
+	"io"
+	"log"
 	"net"
 	"strings"
 	"time"
 )
+
+type RequestHandler func(ctx *RequestContext) error
 
 type IServer interface {
 	Listen() error
@@ -17,6 +20,7 @@ type Server struct {
 	Port        string
 	Listener    net.Listener
 	Connections []*net.Conn
+	Handler     RequestHandler
 }
 
 func (s *Server) Listen() error {
@@ -26,7 +30,8 @@ func (s *Server) Listen() error {
 			return err
 		}
 
-		go s.handleNewConn(c)
+		log.Println("New connection from:", c.RemoteAddr())
+		go s.HandleConnection(&c)
 	}
 }
 
@@ -41,27 +46,31 @@ func (s *Server) Close() error {
 	return nil
 }
 
-func (s *Server) handleNewConn(conn net.Conn) error {
-	s.Connections = append(s.Connections, &conn)
+func (s *Server) HandleConnection(conn *net.Conn) error {
+	s.Connections = append(s.Connections, conn)
 
 	for {
-		data, err := bufio.NewReader(conn).ReadString('\n')
+		data, err := bufio.NewReader(*conn).ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				log.Println("Client disconnected")
+			}
+			return err
+		}
+
+		reqctx := &RequestContext{
+			Now:  time.Now(),
+			Data: []byte(strings.TrimSuffix(data, "\n")),
+			conn: conn,
+		}
+		err = s.Handler(reqctx)
 		if err != nil {
 			return err
 		}
-		if strings.TrimSpace(string(data)) == "Ping" {
-			conn.Write([]byte("Pong\n"))
-			continue
-		}
-
-		fmt.Print("-> ", string(data))
-		t := time.Now()
-		myTime := t.Format(time.RFC3339) + "\n"
-		conn.Write([]byte(myTime))
 	}
 }
 
-func NewServer(network string, port string) (*Server, error) {
+func NewServer(network string, port string, handler RequestHandler) (*Server, error) {
 	l, err := net.Listen(network, port)
 	if err != nil {
 		return nil, err
@@ -71,5 +80,6 @@ func NewServer(network string, port string) (*Server, error) {
 		Port:        port,
 		Listener:    l,
 		Connections: make([]*net.Conn, 0, 5),
+		Handler:     handler,
 	}, nil
 }

@@ -3,37 +3,59 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
-	"bitbucket.org/non-pn/mini-redis-go/internal/network"
+	"bitbucket.org/non-pn/mini-redis-go/internal/service/redis"
+)
+
+const (
+	DEFAULT_REDIS_SEVER_HOST = "127.0.0.1:6377"
 )
 
 func main() {
-	fmt.Println("Hello from client")
 
-	client := network.NewClient("tcp", "127.0.0.1:6377")
+	client := redis.NewClient(DEFAULT_REDIS_SEVER_HOST)
+	log.Println("Start redis client, try connecting to host", DEFAULT_REDIS_SEVER_HOST)
+
 	err := client.Connect()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer client.Close()
 
 	for {
-		reader := bufio.NewReader(os.Stdin)
+		var (
+			resp   []byte
+			reader = bufio.NewReader(os.Stdin)
+		)
 		fmt.Print(">> ")
-		text, _ := reader.ReadString('\n')
+		line, _ := reader.ReadString('\n')
+		cmd := strings.Split(strings.TrimSuffix(line, "\n"), " ")
 
-		resp, err := client.Send(text)
-		if err != nil {
-			fmt.Println(err)
-			return
+		switch cmd[0] {
+		case "get":
+			k := cmd[1]
+			log.Println("Getting from redis with key:", k)
+			resp, err = client.SendGetCmd(k)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			log.Printf("Raw response from server: %v\n", resp)
+		case "set":
+			k := cmd[1]
+			v := cmd[2]
+			log.Println("Setting to redis with key and value:", k, v)
+			resp, err = client.SendSetCmd(k, v)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
 
-		fmt.Print("->: " + string(resp))
-		if strings.TrimSpace(string(text)) == "STOP" {
-			fmt.Println("TCP client exiting...")
-			return
-		}
+		fmt.Println("->: " + string(resp))
 	}
 }
