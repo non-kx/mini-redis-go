@@ -3,10 +3,12 @@ package utils
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 const (
-	BinaryType uint8 = iota + 1
+	NilType uint8 = iota
+	BinaryType
 	StringType
 
 	MaxPayloadSize uint32 = 10 << 20
@@ -15,14 +17,23 @@ const (
 type TypeLengthValue []byte
 
 func (tlv *TypeLengthValue) GetType() uint8 {
+	if len(*tlv) == 0 {
+		return NilType
+	}
 	return (*tlv)[0]
 }
 
 func (tlv *TypeLengthValue) GetLength() uint32 {
+	if len(*tlv) < 5 {
+		return 0
+	}
 	return binary.BigEndian.Uint32((*tlv)[1:5])
 }
 
 func (tlv *TypeLengthValue) GetValue() []byte {
+	if len(*tlv) < 6 {
+		return []byte{}
+	}
 	return (*tlv)[5:]
 }
 
@@ -36,14 +47,16 @@ type String string
 func (s *String) ToTLV() (TypeLengthValue, error) {
 	typ := StringType
 	len := len(*s)
-	val := *s
+	val := []byte(*s)
 
-	tvl := new(bytes.Buffer)
-	binary.Write(tvl, binary.BigEndian, typ)
-	binary.Write(tvl, binary.BigEndian, uint32(len))
-	binary.Write(tvl, binary.BigEndian, val)
+	tlv := new(bytes.Buffer)
+	binary.Write(tlv, binary.BigEndian, typ)
+	binary.Write(tlv, binary.BigEndian, uint32(len))
+	binary.Write(tlv, binary.BigEndian, val)
 
-	return TypeLengthValue(tvl.Bytes()), nil
+	fmt.Println(tlv.Bytes())
+
+	return TypeLengthValue(tlv.Bytes()), nil
 }
 
 func (s *String) FromTLV(tlv TypeLengthValue) error {
@@ -83,12 +96,12 @@ func (b *Binary) ToTLV() (TypeLengthValue, error) {
 	len := len(*b)
 	val := *b
 
-	tvl := new(bytes.Buffer)
-	binary.Write(tvl, binary.BigEndian, typ)
-	binary.Write(tvl, binary.BigEndian, uint32(len))
-	binary.Write(tvl, binary.BigEndian, val)
+	tlv := new(bytes.Buffer)
+	binary.Write(tlv, binary.BigEndian, typ)
+	binary.Write(tlv, binary.BigEndian, uint32(len))
+	binary.Write(tlv, binary.BigEndian, val)
 
-	return TypeLengthValue(tvl.Bytes()), nil
+	return TypeLengthValue(tlv.Bytes()), nil
 }
 
 func (b *Binary) FromTLV(tlv TypeLengthValue) error {
@@ -115,6 +128,8 @@ func (b *Binary) FromTLV(tlv TypeLengthValue) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(typ, len, buf)
 
 	*b = Binary(buf)
 

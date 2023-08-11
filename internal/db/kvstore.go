@@ -12,25 +12,25 @@ const (
 	DefaultCachePath = "./tmp/kv_store_cache.json"
 )
 
-type IKVStore interface {
+type IKVStore[T any] interface {
 	Get(k string) []byte
-	Set(k string, v []byte) error
+	Set(k string, v T) error
 }
 
-type KVStore struct {
-	Storage   map[string][]byte
+type KVStore[T any] struct {
+	Storage   map[string]T
 	CachePath *string
 }
 
-func (kv *KVStore) Get(k string) []byte {
+func (kv *KVStore[T]) Get(k string) T {
 	return kv.Storage[k]
 }
 
-func (kv *KVStore) Set(k string, v []byte) {
+func (kv *KVStore[T]) Set(k string, v T) {
 	kv.Storage[k] = v
 }
 
-func (kv *KVStore) CacheStorage() error {
+func (kv *KVStore[T]) CacheStorage() error {
 	var cachepath string
 	if kv.CachePath == nil {
 		cachepath = DefaultCachePath
@@ -64,7 +64,7 @@ func (kv *KVStore) CacheStorage() error {
 	return nil
 }
 
-func loadStorageFromFile(path *string) map[string][]byte {
+func loadStorageFromFile[T any](path *string) map[string]T {
 	var cachepath string
 	if path == nil {
 		cachepath = DefaultCachePath
@@ -72,7 +72,7 @@ func loadStorageFromFile(path *string) map[string][]byte {
 		cachepath = *path
 	}
 
-	res := make(map[string][]byte)
+	res := make(map[string]T)
 	dat, err := os.ReadFile(cachepath)
 	if err != nil {
 		fmt.Println("There is a problem load from file, start with empty storage")
@@ -87,10 +87,10 @@ func loadStorageFromFile(path *string) map[string][]byte {
 	return res
 }
 
-func InitKVStore(cachepath *string) *KVStore {
-	storage := loadStorageFromFile(cachepath)
+func InitKVStore[T any](cachepath *string) *KVStore[T] {
+	storage := loadStorageFromFile[T](cachepath)
 
-	return &KVStore{
+	return &KVStore[T]{
 		Storage: storage,
 	}
 }

@@ -1,26 +1,24 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
+	"bitbucket.org/non-pn/mini-redis-go/internal/constant"
 	"bitbucket.org/non-pn/mini-redis-go/internal/service/redis"
 )
 
 func main() {
-
-	PORT := ":" + "6377"
-	err := redis.InitRedisServer(PORT)
+	serv, err := redis.NewServer(constant.REDIS_SERVER_PORT)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
-	log.Println("Start redis server at port", PORT)
 
-	err = redis.StartRedisServer()
+	log.Println("Start redis server at port", constant.REDIS_SERVER_PORT)
+	err = serv.Start()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
-	defer redis.StopRedisServer()
+	defer serv.Stop()
 }

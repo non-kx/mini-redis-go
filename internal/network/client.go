@@ -9,8 +9,8 @@ import (
 
 type IClient interface {
 	Connect(network string, host string) error
-	Send(msg string) ([]byte, error)
 	Close() error
+	Send(data []byte) ([]byte, error)
 }
 
 type Client struct {
@@ -30,17 +30,6 @@ func (c *Client) Connect() error {
 	return nil
 }
 
-func (c *Client) Send(msg string) ([]byte, error) {
-	fmt.Fprintf(*c.Connection, msg+"\n")
-
-	resp, err := bufio.NewReader(*c.Connection).ReadString('\n')
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte(strings.TrimSuffix(resp, "\n")), nil
-}
-
 func (c *Client) Close() error {
 	err := (*c.Connection).Close()
 	if err != nil {
@@ -48,6 +37,18 @@ func (c *Client) Close() error {
 	}
 
 	return nil
+}
+
+func (c *Client) Send(data []byte) ([]byte, error) {
+	fmt.Fprintf(*c.Connection, string(data)+"\n")
+	// (*c.Connection).Write(data)
+
+	resp, err := bufio.NewReader(*c.Connection).ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(strings.TrimSuffix(resp, "\n")), nil
 }
 
 func NewClient(network string, host string) *Client {

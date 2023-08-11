@@ -1,29 +1,28 @@
 package network
 
 import (
-	"bufio"
 	"io"
 	"log"
 	"net"
-	"strings"
 	"time"
 )
 
-type RequestHandler func(ctx *RequestContext) error
+// type RequestHandler func(ctx *RequestContext, arg ...any) error
 
 type IServer interface {
-	Listen() error
-	Close() error
+	Start() error
+	Stop() error
+	HandleConnection(conn *net.Conn) error
+	HandleRequest(ctx *RequestContext) error
 }
 
 type Server struct {
 	Port        string
 	Listener    net.Listener
 	Connections []*net.Conn
-	Handler     RequestHandler
 }
 
-func (s *Server) Listen() error {
+func (s *Server) Start() error {
 	for {
 		c, err := s.Listener.Accept()
 		if err != nil {
@@ -35,7 +34,7 @@ func (s *Server) Listen() error {
 	}
 }
 
-func (s *Server) Close() error {
+func (s *Server) Stop() error {
 	for _, conn := range s.Connections {
 		err := (*conn).Close()
 		if err != nil {
@@ -50,7 +49,7 @@ func (s *Server) HandleConnection(conn *net.Conn) error {
 	s.Connections = append(s.Connections, conn)
 
 	for {
-		data, err := bufio.NewReader(*conn).ReadString('\n')
+		data, err := ReadUntilCRLF(conn)
 		if err != nil {
 			if err == io.EOF {
 				log.Println("Client disconnected")
@@ -60,17 +59,23 @@ func (s *Server) HandleConnection(conn *net.Conn) error {
 
 		reqctx := &RequestContext{
 			Now:  time.Now(),
-			Data: []byte(strings.TrimSuffix(data, "\n")),
-			conn: conn,
+			Data: data,
+			Conn: conn,
 		}
-		err = s.Handler(reqctx)
+		err = s.HandleRequest(reqctx)
 		if err != nil {
 			return err
 		}
 	}
 }
 
-func NewServer(network string, port string, handler RequestHandler) (*Server, error) {
+func (s *Server) HandleRequest(ctx *RequestContext) error {
+	ctx.Response(ctx.Data)
+
+	return nil
+}
+
+func NewServer(network string, port string) (*Server, error) {
 	l, err := net.Listen(network, port)
 	if err != nil {
 		return nil, err
@@ -80,6 +85,5 @@ func NewServer(network string, port string, handler RequestHandler) (*Server, er
 		Port:        port,
 		Listener:    l,
 		Connections: make([]*net.Conn, 0, 5),
-		Handler:     handler,
 	}, nil
 }

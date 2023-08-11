@@ -1,36 +1,42 @@
 package redis
 
 import (
-	"errors"
-	"fmt"
-	"strconv"
+	"log"
+	"net"
 
+	"bitbucket.org/non-pn/mini-redis-go/internal/constant"
 	"bitbucket.org/non-pn/mini-redis-go/internal/network"
+	"bitbucket.org/non-pn/mini-redis-go/internal/utils"
 )
 
 type RedisClient struct {
-	netcli *network.Client
+	Network    string
+	Host       string
+	Connection *net.Conn
 }
 
 func NewClient(host string) *RedisClient {
 	rediscli := &RedisClient{
-		netcli: network.NewClient(PROTOCOL, host),
+		Network: constant.PROTOCOL,
+		Host:    host,
 	}
 
 	return rediscli
 }
 
 func (cli *RedisClient) Connect() error {
-	err := cli.netcli.Connect()
+	conn, err := net.Dial(cli.Network, cli.Host)
 	if err != nil {
 		return err
 	}
+
+	cli.Connection = &conn
 
 	return nil
 }
 
 func (cli *RedisClient) Close() error {
-	err := cli.netcli.Close()
+	err := (*cli.Connection).Close()
 	if err != nil {
 		return err
 	}
@@ -38,28 +44,13 @@ func (cli *RedisClient) Close() error {
 	return nil
 }
 
-func (cli *RedisClient) SendGetCmd(k string) ([]byte, error) {
-	pkg, err := createPayload(GetCmd, &k, nil)
+func (cli *RedisClient) Send(data []byte) ([]byte, error) {
+	err := network.WriteWithCRLF(cli.Connection, data)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := cli.netcli.Send(string(pkg))
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func (cli *RedisClient) SendSetCmd(k string, v string) ([]byte, error) {
-	pkg, err := createPayload(SetCmd, &k, &v)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := cli.netcli.Send(string(pkg))
+	resp, err := network.ReadUntilCRLF(cli.Connection)
 	if err != nil {
 		return nil, err
 	}
@@ -67,27 +58,54 @@ func (cli *RedisClient) SendSetCmd(k string, v string) ([]byte, error) {
 	return resp, nil
 }
 
-func createPayload(cmd RedisCmd, k *string, v *string) ([]byte, error) {
-	var (
-		cmdbyte []byte
-		kbyte   []byte
-		vbyte   []byte
-	)
-	cmdbyte = []byte(strconv.Itoa(int(cmd)))
-
-	if k != nil {
-		kbyte = []byte(*k)
-		if len(kbyte) > 8 {
-			return nil, errors.New("Invalid key length")
-		}
-
-		zbyte := make([]byte, 8-len(kbyte))
-		kbyte = append(zbyte, kbyte...)
+func (cli *RedisClient) SendGetCmd(k string) (*RedisResponsePayload, error) {
+	payload := &RedisRequestPayload{
+		Cmd:   GetCmd,
+		Key:   k,
+		Value: []byte{},
+	}
+	rawpayload, err := payload.ToRaw()
+	if err != nil {
+		return nil, err
 	}
 
-	if v != nil {
-		vbyte = []byte(*v)
+	rawresp, err := cli.Send(*rawpayload)
+	if err != nil {
+		log.Println(err)
+		return nil, err
 	}
 
-	return append(append(cmdbyte, kbyte...), vbyte...), nil
+	rawredisresp := RedisRawResponsePayload(rawresp)
+	redisresp, err := rawredisresp.TransformPayload()
+	if err != nil {
+		return nil, err
+	}
+
+	return redisresp, nil
+}
+
+func (cli *RedisClient) SendSetCmd(k string, v utils.TypeLengthValue) (*RedisResponsePayload, error) {
+	payload := &RedisRequestPayload{
+		Cmd:   SetCmd,
+		Key:   k,
+		Value: v,
+	}
+	rawpayload, err := payload.ToRaw()
+	if err != nil {
+		return nil, err
+	}
+
+	rawresp, err := cli.Send(*rawpayload)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	rawredisresp := RedisRawResponsePayload(rawresp)
+	redisresp, err := rawredisresp.TransformPayload()
+	if err != nil {
+		return nil, err
+	}
+
+	return redisresp, nil
 }

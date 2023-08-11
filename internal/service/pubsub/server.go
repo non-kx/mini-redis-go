@@ -1,4 +1,4 @@
-package redis
+package pubsub
 
 import (
 	"io"
@@ -11,21 +11,21 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/network"
 )
 
-type RedisServer struct {
+type PubsubServer struct {
 	Port        string
 	Listener    net.Listener
 	Connections []*net.Conn
-	DB          *db.KVStore[[]byte]
+	DB          *db.KVStore[[]*net.Conn]
 }
 
-func NewServer(port string) (*RedisServer, error) {
-	kvstore := db.InitKVStore[[]byte](nil)
+func NewServer(port string) (*PubsubServer, error) {
+	kvstore := db.InitKVStore[[]*net.Conn](nil)
 	l, err := net.Listen(constant.PROTOCOL, port)
 	if err != nil {
 		return nil, err
 	}
 
-	return &RedisServer{
+	return &PubsubServer{
 		Port:        port,
 		Listener:    l,
 		Connections: make([]*net.Conn, 0, 5),
@@ -33,7 +33,7 @@ func NewServer(port string) (*RedisServer, error) {
 	}, nil
 }
 
-func (serv *RedisServer) Start() error {
+func (serv *PubsubServer) Start() error {
 	for {
 		c, err := serv.Listener.Accept()
 		if err != nil {
@@ -45,7 +45,7 @@ func (serv *RedisServer) Start() error {
 	}
 }
 
-func (serv *RedisServer) Stop() error {
+func (serv *PubsubServer) Stop() error {
 	for _, conn := range serv.Connections {
 		err := (*conn).Close()
 		if err != nil {
@@ -56,7 +56,7 @@ func (serv *RedisServer) Stop() error {
 	return nil
 }
 
-func (serv *RedisServer) HandleConnection(conn *net.Conn) error {
+func (serv *PubsubServer) HandleConnection(conn *net.Conn) error {
 	serv.Connections = append(serv.Connections, conn)
 
 	for {
@@ -80,9 +80,9 @@ func (serv *RedisServer) HandleConnection(conn *net.Conn) error {
 	}
 }
 
-func (serv *RedisServer) HandleRequest(ctx *network.RequestContext) error {
-	var resp RedisResponsePayload
-	data := RedisRawRequestPayload(ctx.Data)
+func (serv *PubsubServer) HandleRequest(ctx *network.RequestContext) error {
+	var resp PubsubResponsePayload
+	data := PubsubRawRequestPayload(ctx.Data)
 	payload, err := data.TransformPayload()
 	if err != nil {
 		log.Println(err)
@@ -92,26 +92,9 @@ func (serv *RedisServer) HandleRequest(ctx *network.RequestContext) error {
 	log.Println("Receive payload:", payload)
 
 	switch payload.Cmd {
-	case GetCmd:
-		resp = RedisResponsePayload{
-			RespType: GetSuccess,
-			RespBody: serv.Get(payload.Key),
-		}
-		raw, err := resp.ToRaw()
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-		err = ctx.Response(*raw)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-		break
-	case SetCmd:
-		serv.Set(payload.Key, []byte(payload.Value))
-		resp = RedisResponsePayload{
-			RespType: SetSuccess,
+	case SubscribeCmd:
+		resp = PubsubResponsePayload{
+			RespType: SubscribeSuccess,
 			RespBody: []byte("OK"),
 		}
 		raw, err := resp.ToRaw()
@@ -125,6 +108,23 @@ func (serv *RedisServer) HandleRequest(ctx *network.RequestContext) error {
 			return err
 		}
 		break
+	case PublishCmd:
+		// serv.Set(payload.Key, []byte(payload.Value))
+		// resp = RedisResponsePayload{
+		// 	RespType: SetSuccess,
+		// 	RespBody: []byte("OK"),
+		// }
+		// raw, err := resp.ToRaw()
+		// if err != nil {
+		// 	log.Println(err)
+		// 	return err
+		// }
+		// err = ctx.Response(*raw)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	return err
+		// }
+		// break
 	}
 
 	err = serv.DB.CacheStorage()
@@ -135,12 +135,12 @@ func (serv *RedisServer) HandleRequest(ctx *network.RequestContext) error {
 	return nil
 }
 
-func (serv *RedisServer) Get(k string) []byte {
-	log.Printf("Get from KVStore with k[%v]", k)
-	return serv.DB.Get(k)
+func (serv *PubsubServer) SubscribeToTopic(topic string, conn *net.Conn) {
+	conns := serv.DB.Get(topic)
+	conns = append(conns, conn)
+	serv.DB.Set(topic, conns)
 }
 
-func (serv *RedisServer) Set(k string, v []byte) {
-	log.Printf("Set to KVStore with k[%v] v[%v]\n", k, v)
-	serv.DB.Set(k, v)
+func (serv *PubsubServer) PublishToTopic(topic string, msg []byte) {
+
 }
