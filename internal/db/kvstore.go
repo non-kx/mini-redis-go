@@ -64,6 +64,14 @@ func (kv *KVStore[T]) CacheStorage() error {
 	return nil
 }
 
+func NewKVStore[T any](cachepath *string) *KVStore[T] {
+	storage := loadStorageFromFile[T](cachepath)
+
+	return &KVStore[T]{
+		Storage: storage,
+	}
+}
+
 func loadStorageFromFile[T any](path *string) map[string]T {
 	var cachepath string
 	if path == nil {
@@ -85,12 +93,4 @@ func loadStorageFromFile[T any](path *string) map[string]T {
 	}
 
 	return res
-}
-
-func InitKVStore[T any](cachepath *string) *KVStore[T] {
-	storage := loadStorageFromFile[T](cachepath)
-
-	return &KVStore[T]{
-		Storage: storage,
-	}
 }

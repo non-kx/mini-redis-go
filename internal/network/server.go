@@ -5,6 +5,11 @@ import (
 	"log"
 	"net"
 	"time"
+
+	"bitbucket.org/non-pn/mini-redis-go/internal/db"
+	"bitbucket.org/non-pn/mini-redis-go/internal/payload"
+	"bitbucket.org/non-pn/mini-redis-go/internal/service"
+	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
 // type RequestHandler func(ctx *RequestContext, arg ...any) error
@@ -13,13 +18,15 @@ type IServer interface {
 	Start() error
 	Stop() error
 	HandleConnection(conn *net.Conn) error
-	HandleRequest(ctx *RequestContext) error
+	HandleRequest(ctx *payload.RequestContext) error
 }
 
 type Server struct {
 	Port        string
 	Listener    net.Listener
 	Connections []*net.Conn
+	RedisDb     *db.KVStore[[]byte]
+	PubSubDb    *db.KVStore[*payload.Topic[*tlv.String]]
 }
 
 func (s *Server) Start() error {
@@ -49,7 +56,8 @@ func (s *Server) HandleConnection(conn *net.Conn) error {
 	s.Connections = append(s.Connections, conn)
 
 	for {
-		data, err := ReadUntilCRLF(conn)
+		pl := new(payload.RequestPayload)
+		err := pl.ReadFromIO(*conn)
 		if err != nil {
 			if err == io.EOF {
 				log.Println("Client disconnected")
@@ -57,22 +65,18 @@ func (s *Server) HandleConnection(conn *net.Conn) error {
 			return err
 		}
 
-		reqctx := &RequestContext{
-			Now:  time.Now(),
-			Data: data,
-			Conn: conn,
+		reqctx := &payload.RequestContext{
+			Conn:     conn,
+			Now:      time.Now(),
+			Payload:  pl,
+			RedisDb:  s.RedisDb,
+			PubSubDb: s.PubSubDb,
 		}
-		err = s.HandleRequest(reqctx)
+		err = service.HandleRequest(reqctx)
 		if err != nil {
 			return err
 		}
 	}
-}
-
-func (s *Server) HandleRequest(ctx *RequestContext) error {
-	ctx.Response(ctx.Data)
-
-	return nil
 }
 
 func NewServer(network string, port string) (*Server, error) {
@@ -85,5 +89,7 @@ func NewServer(network string, port string) (*Server, error) {
 		Port:        port,
 		Listener:    l,
 		Connections: make([]*net.Conn, 0, 5),
+		RedisDb:     db.NewKVStore[[]byte](nil),
+		PubSubDb:    db.NewKVStore[*payload.Topic[*tlv.String]](nil),
 	}, nil
 }
