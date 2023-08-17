@@ -6,7 +6,9 @@ import (
 	"net"
 	"time"
 
+	"bitbucket.org/non-pn/mini-redis-go/internal/constant"
 	"bitbucket.org/non-pn/mini-redis-go/internal/db"
+	"bitbucket.org/non-pn/mini-redis-go/internal/db/model"
 	"bitbucket.org/non-pn/mini-redis-go/internal/payload"
 	"bitbucket.org/non-pn/mini-redis-go/internal/service"
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
@@ -26,7 +28,7 @@ type Server struct {
 	Listener    net.Listener
 	Connections []*net.Conn
 	RedisDb     *db.KVStore[[]byte]
-	PubSubDb    *db.KVStore[*payload.Topic[*tlv.String]]
+	PubSubDb    *db.KVStore[*model.Topic[*tlv.String]]
 }
 
 func (s *Server) Start() error {
@@ -57,7 +59,8 @@ func (s *Server) HandleConnection(conn *net.Conn) error {
 
 	for {
 		pl := new(payload.RequestPayload)
-		err := pl.ReadFromIO(*conn)
+		_, err := pl.ReadFrom(*conn)
+		// Handle remove conn from arr
 		if err != nil {
 			if err == io.EOF {
 				log.Println("Client disconnected")
@@ -79,17 +82,18 @@ func (s *Server) HandleConnection(conn *net.Conn) error {
 	}
 }
 
-func NewServer(network string, port string) (*Server, error) {
+func NewServer(network string, port string, cert *string, key *string) (*Server, error) {
 	l, err := net.Listen(network, port)
 	if err != nil {
 		return nil, err
 	}
 
+	redisCache := constant.DefaultRedisCachePath
 	return &Server{
 		Port:        port,
 		Listener:    l,
 		Connections: make([]*net.Conn, 0, 5),
-		RedisDb:     db.NewKVStore[[]byte](nil),
-		PubSubDb:    db.NewKVStore[*payload.Topic[*tlv.String]](nil),
+		RedisDb:     db.NewKVStore[[]byte](&redisCache),
+		PubSubDb:    db.NewKVStore[*model.Topic[*tlv.String]](nil),
 	}, nil
 }

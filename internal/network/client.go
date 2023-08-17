@@ -71,6 +71,10 @@ func (c *Client) Get(k string) (tlv.TLVCompatible, error) {
 		return nil, err
 	}
 
+	if resp == nil {
+		return new(tlv.String), nil
+	}
+
 	return resp, nil
 }
 

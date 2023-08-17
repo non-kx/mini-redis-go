@@ -23,13 +23,13 @@ func SendGetRequest(conn *net.Conn, key string) (tlv.TLVCompatible, error) {
 		Body: rawbod,
 	}
 
-	err = req.WriteToIO(*conn)
+	_, err = req.WriteTo(*conn)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := new(payload.ResponsePayload)
-	err = resp.ReadFromIO(*conn)
+	_, err = resp.ReadFrom(*conn)
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +73,13 @@ func SendSetRequest(conn *net.Conn, key string, val tlv.TypeLengthValue) (string
 		Body: rawbod,
 	}
 
-	err = req.WriteToIO(*conn)
+	_, err = req.WriteTo(*conn)
 	if err != nil {
 		return "", err
 	}
 
 	resp := new(payload.ResponsePayload)
-	err = resp.ReadFromIO(*conn)
+	_, err = resp.ReadFrom(*conn)
 	if err != nil {
 		return "", err
 	}

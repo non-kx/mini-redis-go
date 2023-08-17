@@ -2,11 +2,11 @@ package pubsub
 
 import (
 	"bytes"
-	"errors"
 	"log"
-	"net"
 
+	"bitbucket.org/non-pn/mini-redis-go/internal/db/model"
 	"bitbucket.org/non-pn/mini-redis-go/internal/payload"
+	"bitbucket.org/non-pn/mini-redis-go/internal/service/internal/helper"
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
@@ -20,7 +20,7 @@ func HandleRequest(ctx *payload.RequestContext) error {
 	body = ctx.Payload.Body
 
 	pubsubBody := new(payload.PubsubRequestBody)
-	err = pubsubBody.ReadFromIO(bytes.NewReader(body))
+	_, err = pubsubBody.ReadFrom(bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -44,21 +44,13 @@ func handleSubRequest(ctx *payload.RequestContext, body *payload.PubsubRequestBo
 		err error
 	)
 	topic := ctx.PubSubDb.Get(body.Topic)
-	if topic == nil {
-		topic = payload.NewTopic[*tlv.String](body.Topic)
+	if topic == nil || !topic.DidInit() {
+		topic = model.NewTopic[*tlv.String](body.Topic)
 		ctx.PubSubDb.Set(body.Topic, topic)
 	}
 	topic.AddConn(ctx.Conn)
 
-	go func() {
-		err := handleNewTopic(topic)
-		if err != nil {
-			log.Panicln(err)
-			close(*topic.Chan)
-		}
-	}()
-
-	err = responseWithSting("OK", ctx)
+	err = helper.ResponseWithString("OK", ctx)
 	if err != nil {
 		return err
 	}
@@ -71,8 +63,9 @@ func handlePubRequest(ctx *payload.RequestContext, body *payload.PubsubRequestBo
 	)
 
 	topic := ctx.PubSubDb.Get(body.Topic)
-	if topic == nil {
-		return errors.New("Error topic does not exist")
+	if topic == nil || !topic.DidInit() {
+		topic = model.NewTopic[*tlv.String](body.Topic)
+		ctx.PubSubDb.Set(body.Topic, topic)
 	}
 
 	msg := body.Value
@@ -82,9 +75,12 @@ func handlePubRequest(ctx *payload.RequestContext, body *payload.PubsubRequestBo
 		return err
 	}
 
-	*topic.Chan <- smsg
+	err = broadCastMessage[*tlv.String](topic, smsg)
+	if err != nil {
+		return err
+	}
 
-	err = responseWithSting("OK", ctx)
+	err = helper.ResponseWithString("OK", ctx)
 	if err != nil {
 		return err
 	}
@@ -92,23 +88,12 @@ func handlePubRequest(ctx *payload.RequestContext, body *payload.PubsubRequestBo
 	return nil
 }
 
-func handleNewTopic[T tlv.TLVCompatible](topic *payload.Topic[T]) error {
-	tc := topic.Chan
+func broadCastMessage[T tlv.TLVCompatible](topic *model.Topic[T], msg T) error {
 	conns := topic.ConnDb.Storage
-
-	go func() {
-		select {
-		case v := <-*tc:
-			broadCastMessage[T](v, conns)
-
-		}
-	}()
-	return nil
-}
-
-func broadCastMessage[T tlv.TLVCompatible](msg T, conns map[string]*net.Conn) error {
 	for _, conn := range conns {
 		c := conn
+
+		log.Println("Relaying message to:", (*c).RemoteAddr().String())
 
 		raw, err := msg.ToTLV()
 		if err != nil {
@@ -118,31 +103,7 @@ func broadCastMessage[T tlv.TLVCompatible](msg T, conns map[string]*net.Conn) er
 			Typ:  tlv.MsgType,
 			Body: raw,
 		}
-		resp.WriteToIO(*c)
+		resp.WriteTo(*c)
 	}
-	return nil
-}
-
-func responseWithSting(s string, ctx *payload.RequestContext) error {
-	ss := tlv.String(s)
-	raw, err := ss.ToTLV()
-	if err != nil {
-		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
-		log.Println(err)
-		return err
-	}
-
-	typ := raw.GetType()
-	resp := payload.ResponsePayload{
-		Typ:  typ,
-		Body: raw,
-	}
-	err = resp.WriteToIO(*ctx.Conn)
-	if err != nil {
-		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
-		log.Println(err)
-		return err
-	}
-
 	return nil
 }

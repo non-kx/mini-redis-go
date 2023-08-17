@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"bitbucket.org/non-pn/mini-redis-go/internal/db"
+	"bitbucket.org/non-pn/mini-redis-go/internal/db/model"
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
@@ -15,13 +16,13 @@ type RequestContext struct {
 	context.Context
 	Conn     *net.Conn
 	RedisDb  *db.KVStore[[]byte]
-	PubSubDb *db.KVStore[*Topic[*tlv.String]]
+	PubSubDb *db.KVStore[*model.Topic[*tlv.String]]
 	Now      time.Time
 	Payload  *RequestPayload
 }
 
 func (ctx *RequestContext) Response(res ResponsePayload) error {
-	err := res.WriteToIO(*ctx.Conn)
+	_, err := res.WriteTo(*ctx.Conn)
 	if err != nil {
 		return err
 	}
@@ -41,7 +42,7 @@ func (ctx *RequestContext) Error(code uint16, msg string) error {
 
 func ReadResponse(r io.Reader) (*ResponsePayload, error) {
 	res := new(ResponsePayload)
-	err := res.ReadFromIO(r)
+	_, err := res.ReadFrom(r)
 	if err != nil {
 		return nil, err
 	}

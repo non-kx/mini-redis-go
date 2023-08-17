@@ -12,7 +12,7 @@ import (
 func HandleRequest(ctx *payload.RequestContext) error {
 	body := ctx.Payload.Body
 	msg := tlv.String("")
-	err := msg.ReadFromIO(bytes.NewReader(body))
+	_, err := msg.ReadFrom(bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func HandleRequest(ctx *payload.RequestContext) error {
 		pong = msg
 	}
 
-	err = pong.WriteToIO(*ctx.Conn)
+	_, err = pong.WriteTo(*ctx.Conn)
 	if err != nil {
 		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)
@@ -51,13 +51,13 @@ func SendPingRequest(conn *net.Conn, msg *string) (*tlv.String, error) {
 		Body: msgtlv,
 	}
 
-	err = req.WriteToIO(*conn)
+	_, err = req.WriteTo(*conn)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := tlv.String("")
-	err = resp.ReadFromIO(*conn)
+	_, err = resp.ReadFrom(*conn)
 	if err != nil {
 		return nil, err
 	}

@@ -51,7 +51,7 @@ func handleGetRequest(ctx *payload.RequestContext, body *payload.RedisRequestBod
 		Typ:  typ,
 		Body: raw,
 	}
-	err = resp.WriteToIO(*ctx.Conn)
+	_, err = resp.WriteTo(*ctx.Conn)
 	if err != nil {
 		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)
@@ -78,7 +78,7 @@ func handleSetRequest(ctx *payload.RequestContext, body *payload.RedisRequestBod
 		Typ:  tlv.StringType,
 		Body: raw,
 	}
-	err = resp.WriteToIO(*ctx.Conn)
+	_, err = resp.WriteTo(*ctx.Conn)
 	if err != nil {
 		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)

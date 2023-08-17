@@ -12,11 +12,36 @@
             "program": "./cmd/server/main.go"
         },
         {
-            "name": "Launch Client",
+            "name": "Launch Client Get Key",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "./cmd/client/main.go"
+            "program": "./cmd/client/main.go",
+            "args": ["-c", "get", "k"]
+        },
+        {
+            "name": "Launch Client Set Key",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "./cmd/client/main.go",
+            "args": ["-c", "set", "k", "v"]
+        },
+        {
+            "name": "Launch Client Sub Topic",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "./cmd/client/main.go",
+            "args": ["-c", "sub", "test"]
+        },
+        {
+            "name": "Launch Client Pub Message",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "./cmd/client/main.go",
+            "args": ["-c", "pub", "test", "test"]
         }
     ]
 }

@@ -1,26 +1,11 @@
 package test
 
 import (
-	"fmt"
 	"testing"
 
 	"bitbucket.org/non-pn/mini-redis-go/internal/constant"
 	"bitbucket.org/non-pn/mini-redis-go/internal/network"
 )
-
-func StartServerForTest() {
-	serv, err := network.NewServer(constant.PROTOCOL, constant.REDIS_SERVER_PORT)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	err = serv.Start()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer serv.Stop()
-}
 
 func Test_receive_message_subscribed_topic(t *testing.T) {
 	var (
@@ -32,14 +17,16 @@ func Test_receive_message_subscribed_topic(t *testing.T) {
 		err error
 	)
 
-	subclient = network.NewClient(constant.PROTOCOL, constant.DEFAULT_REDIS_SEVER_HOST)
+	startTestServer(t)
+
+	subclient = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
 	err = subclient.Connect()
 	if err != nil {
 		t.Errorf("Got err = %v", err)
 	}
 	defer subclient.Close()
 
-	pubclient = network.NewClient(constant.PROTOCOL, constant.DEFAULT_REDIS_SEVER_HOST)
+	pubclient = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
 	err = pubclient.Connect()
 	if err != nil {
 		t.Errorf("Got err = %v", err)

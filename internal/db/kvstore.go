@@ -6,10 +6,8 @@ import (
 	"log"
 	"os"
 	"strings"
-)
 
-const (
-	DefaultCachePath = "./tmp/kv_store_cache.json"
+	"bitbucket.org/non-pn/mini-redis-go/internal/constant"
 )
 
 type IKVStore[T any] interface {
@@ -30,10 +28,14 @@ func (kv *KVStore[T]) Set(k string, v T) {
 	kv.Storage[k] = v
 }
 
+func (kv *KVStore[T]) Delete(k string) {
+	delete(kv.Storage, k)
+}
+
 func (kv *KVStore[T]) CacheStorage() error {
 	var cachepath string
 	if kv.CachePath == nil {
-		cachepath = DefaultCachePath
+		cachepath = constant.DefaultRedisCachePath
 	} else {
 		cachepath = *kv.CachePath
 	}
@@ -73,24 +75,26 @@ func NewKVStore[T any](cachepath *string) *KVStore[T] {
 }
 
 func loadStorageFromFile[T any](path *string) map[string]T {
-	var cachepath string
+	var (
+		cachepath string
+		storage   = make(map[string]T)
+	)
 	if path == nil {
-		cachepath = DefaultCachePath
+		return storage
 	} else {
 		cachepath = *path
 	}
 
-	res := make(map[string]T)
 	dat, err := os.ReadFile(cachepath)
 	if err != nil {
 		fmt.Println("There is a problem load from file, start with empty storage")
-		return res
+		return storage
 	}
 
-	err = json.Unmarshal(dat, &res)
+	err = json.Unmarshal(dat, &storage)
 	if err != nil {
-		return res
+		return storage
 	}
 
-	return res
+	return storage
 }

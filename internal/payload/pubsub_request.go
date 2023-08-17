@@ -15,95 +15,128 @@ const (
 
 type PubsubRequestBody struct {
 	Topic string
-	Len   uint32
 	Value tlvpac.TypeLengthValue
 }
 
-func (b *PubsubRequestBody) GetLen() uint32 {
-	return uint32(TopicDataLength) + uint32(ValLenDataLength) + b.Len
-}
+// func (b *PubsubRequestBody) GetLen() uint32 {
+// 	return uint32(TopicDataLength) + uint32(ValLenDataLength) + b.Len
+// }
 
-func (b *PubsubRequestBody) ReadFromIO(r io.Reader) error {
+func (b *PubsubRequestBody) ReadFrom(r io.Reader) (int64, error) {
 	var (
 		typ   uint8
-		blen  uint32
-		topic = make([]byte, 16)
-		vlen  uint32
-		err   error
+		len   uint32
+		topic = make([]byte, TopicDataLength)
+		n     int64
+
+		err error
 	)
 
 	err = binary.Read(r, binary.BigEndian, &typ)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	if typ != tlvpac.RedisRequestPayloadType {
-		return errors.New("Invalid pubsub request")
+	n += 1
+
+	if typ != tlvpac.PubsubRequestPayloadType {
+		return n, errors.New("Error: Invalid pubsub request")
 	}
 
-	err = binary.Read(r, binary.BigEndian, &blen)
+	err = binary.Read(r, binary.BigEndian, &len)
 	if err != nil {
-		return err
+		return n, err
 	}
+
+	n += 4
 
 	err = binary.Read(r, binary.BigEndian, &topic)
 	if err != nil {
-		return err
+		return n, err
 	}
 
-	err = binary.Read(r, binary.BigEndian, &vlen)
-	if err != nil {
-		return err
-	}
+	n += int64(TopicDataLength)
 
+	vlen := len - uint32(TopicDataLength)
 	buf := make([]byte, vlen)
 
 	if vlen > 0 {
-		_, err = r.Read(buf)
+		o, err := r.Read(buf)
 		if err != nil {
-			return err
+			return n, err
 		}
+
+		n += int64(o)
 	}
 
 	*b = PubsubRequestBody{
 		Topic: string(topic),
-		Len:   vlen,
 		Value: tlvpac.TypeLengthValue(buf),
 	}
 
-	return nil
+	return n, nil
 }
 
-func (b *PubsubRequestBody) WriteToIO(w io.Writer) error {
-	if len(b.Topic) > 16 {
-		return errors.New("Error topic length exceed limit")
+func (b *PubsubRequestBody) WriteTo(w io.Writer) (int64, error) {
+	var (
+		n int64
+
+		err error
+	)
+
+	if len(b.Topic) > int(TopicDataLength) {
+		return 0, errors.New("Error: Topic length exceed limit")
 	}
 
-	typ := tlvpac.RedisRequestPayloadType
-	blen := b.GetLen()
-	topic := append(make([]byte, 16-len(b.Topic)), []byte(b.Topic)...)
-	vlen := b.Len
+	typ := tlvpac.PubsubRequestPayloadType
+	topic := append(make([]byte, int(TopicDataLength)-len(b.Topic)), []byte(b.Topic)...)
 	val := b.Value
+	blen := uint32(len(val)) + uint32(TopicDataLength)
 
-	binary.Write(w, binary.BigEndian, typ)
-	binary.Write(w, binary.BigEndian, blen)
-	binary.Write(w, binary.BigEndian, []byte(topic))
-	binary.Write(w, binary.BigEndian, vlen)
-	binary.Write(w, binary.BigEndian, val)
+	err = binary.Write(w, binary.BigEndian, typ)
+	if err != nil {
+		return 0, err
+	}
 
-	return nil
+	n += 1
+
+	err = binary.Write(w, binary.BigEndian, blen)
+	if err != nil {
+		return n, err
+	}
+
+	n += 4
+
+	err = binary.Write(w, binary.BigEndian, topic)
+	if err != nil {
+		return n, err
+	}
+
+	n += int64(TopicDataLength)
+
+	o, err := w.Write(val)
+	if err != nil {
+		return n, err
+	}
+
+	n += int64(o)
+
+	return n, nil
 }
 
 func (b *PubsubRequestBody) ToTLV() (tlvpac.TypeLengthValue, error) {
 	raw := new(bytes.Buffer)
-	b.WriteToIO(raw)
+	_, err := b.WriteTo(raw)
+	if err != nil {
+		return nil, err
+	}
 
 	return tlvpac.TypeLengthValue(raw.Bytes()), nil
 }
 
 func (b *PubsubRequestBody) FromTLV(tlv tlvpac.TypeLengthValue) error {
 	r := bytes.NewReader(tlv)
-	err := b.ReadFromIO(r)
+	_, err := b.ReadFrom(r)
 	if err != nil {
 		return err
 	}

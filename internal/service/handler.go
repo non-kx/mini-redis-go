@@ -1,6 +1,8 @@
 package service
 
 import (
+	"net"
+
 	"bitbucket.org/non-pn/mini-redis-go/internal/payload"
 	"bitbucket.org/non-pn/mini-redis-go/internal/service/pingpong"
 	"bitbucket.org/non-pn/mini-redis-go/internal/service/pubsub"
@@ -47,5 +49,9 @@ func HandleRequest(ctx *payload.RequestContext) error {
 		break
 	}
 
+	return nil
+}
+
+func HandleDisconnected(conn *net.Conn) error {
 	return nil
 }

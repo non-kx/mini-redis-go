@@ -1,16 +1,83 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"log"
 
+	"bitbucket.org/non-pn/mini-redis-go/cmd/client/internal/handler"
 	"bitbucket.org/non-pn/mini-redis-go/internal/constant"
 	"bitbucket.org/non-pn/mini-redis-go/internal/network"
 )
 
+const (
+	cliGetCmd = "get"
+	cliSetCmd = "set"
+	cliSubCmd = "sub"
+	cliPubCmd = "pub"
+)
+
+func handleClientCommand(cli *network.Client, cmd string, vals []string) error {
+	if cli == nil {
+		return errors.New("Error: client cannot be nil")
+	}
+
+	switch cmd {
+	case cliGetCmd:
+		if len(vals) == 0 {
+			return errors.New("Error: Get cmd require at least one argument")
+		}
+		k := vals[0]
+		handler.HandleClientGet(cli, k)
+		break
+	case cliSetCmd:
+		if len(vals) < 2 {
+			return errors.New("Error: Get cmd require two argument")
+		}
+		k, v := vals[0], vals[1]
+		handler.HandleClientSet(cli, k, v)
+		break
+	case cliSubCmd:
+		if len(vals) == 0 {
+			return errors.New("Error: Sub cmd require at least one argument")
+		}
+		topic := vals[0]
+		handler.HandleClientSub(cli, topic)
+		break
+	case cliPubCmd:
+		if len(vals) < 2 {
+			return errors.New("Error: Sub cmd require topic and message")
+		}
+		topic, message := vals[0], vals[1]
+		handler.HandleClientPub(cli, topic, message)
+		break
+	default:
+		fmt.Println("Invalid command")
+		break
+	}
+
+	return nil
+}
+
 func main() {
-	client := network.NewClient(constant.PROTOCOL, constant.DEFAULT_REDIS_SEVER_HOST)
-	log.Println("Start redis client, try connecting to host", constant.DEFAULT_REDIS_SEVER_HOST)
+	var (
+		host string
+		port string
+		cmd  string
+		vals []string
+	)
+	flag.StringVar(&host, "h", constant.DefaultServerHost, "host for client to connect to")
+	flag.StringVar(&port, "p", constant.DefaultServerPort, "port for client to connect to")
+	flag.StringVar(&cmd, "c", "get", "command to use")
+
+	flag.Parse()
+	vals = flag.Args()
+
+	// Init client and try connect to host
+	connstr := host + ":" + port
+	client := network.NewClient(constant.Protocol, constant.DefaultServerUrl)
+	log.Println("Start redis client, try connecting to:", connstr)
 
 	err := client.Connect()
 	if err != nil {
@@ -19,21 +86,5 @@ func main() {
 	}
 	defer client.Close()
 
-	// k := "PING"
-	// // v := "PONG"
-	// // s := tlv.String(v)
-	// resp, err := client.Get(k)
-	resp, err := client.Pub("test", "test_msg")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// err = sub.Subscribe()
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// msg := sub.NextMessage()
-
-	fmt.Println("->:", resp)
+	handleClientCommand(client, cmd, vals)
 }

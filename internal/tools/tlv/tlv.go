@@ -2,6 +2,7 @@ package tlv
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -32,11 +33,11 @@ const (
 )
 
 type TLVCompatible interface {
+	io.ReaderFrom
+	io.WriterTo
+	fmt.Stringer
 	ToTLV() (TypeLengthValue, error)
 	FromTLV(tlv TypeLengthValue) error
-	ReadFromIO(io.Reader) error
-	WriteToIO(io.Writer) error
-	ToString() string
 }
 
 type TypeLengthValue []byte
@@ -64,7 +65,7 @@ func (tlv *TypeLengthValue) GetValue() []byte {
 
 func ReadTLVFromIO[T TLVCompatible](r io.Reader) (*T, error) {
 	tlv := new(T)
-	err := (*tlv).ReadFromIO(r)
+	_, err := (*tlv).ReadFrom(r)
 	if err != nil {
 		return nil, err
 	}

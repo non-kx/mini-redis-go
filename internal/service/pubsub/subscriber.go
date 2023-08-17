@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -12,45 +11,45 @@ import (
 )
 
 type Subscriber struct {
-	Conn     *net.Conn
-	Messages []*tlv.String
+	Conn         *net.Conn
+	IsSubscribed bool
 }
 
 func (sub *Subscriber) NextMessage() (*tlv.String, error) {
-	// if len(sub.Messages) == 0 {
-	// 	return nil
-	// }
-
-	// msg := sub.Messages[0]
-	// sub.Messages = sub.Messages[1:]
-
-	// return msg
-	pl := new(payload.ResponsePayload)
-	err := pl.ReadFromIO(*sub.Conn)
-	if err != nil {
-		if err == io.EOF {
-			log.Println("Client disconnected")
+	if !sub.IsSubscribed {
+		pl := new(payload.ResponsePayload)
+		_, err := pl.ReadFrom(*sub.Conn)
+		if err != nil {
+			if err == io.EOF {
+				log.Println("Client disconnected")
+			}
+			return nil, err
 		}
-		return nil, err
+
+		if pl.Typ != tlv.MsgType {
+			return nil, errors.New("Error not message type")
+		}
+
+		s := new(tlv.String)
+		err = s.FromTLV(pl.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		return s, nil
 	}
 
-	if pl.Typ != tlv.MsgType {
-		return nil, errors.New("Error not message type")
-	}
-
-	s := new(tlv.String)
-	err = s.FromTLV(pl.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
+	return nil, nil
 }
 
-func (sub *Subscriber) Subscribe() error {
+func (sub *Subscriber) Subscribe(handler func(string)) error {
+	sub.IsSubscribed = true
+	defer func() {
+		sub.IsSubscribed = false
+	}()
 	for {
 		pl := new(payload.ResponsePayload)
-		err := pl.ReadFromIO(*sub.Conn)
+		_, err := pl.ReadFrom(*sub.Conn)
 		if err != nil {
 			if err == io.EOF {
 				log.Println("Client disconnected")
@@ -68,16 +67,14 @@ func (sub *Subscriber) Subscribe() error {
 			return err
 		}
 
-		fmt.Println("new msg:", s)
-
-		sub.Messages = append(sub.Messages, s)
+		handler(s.String())
 	}
 }
 
 func NewSubscriber(conn *net.Conn) *Subscriber {
 	sub := &Subscriber{
-		Conn:     conn,
-		Messages: make([]*tlv.String, 0),
+		Conn:         conn,
+		IsSubscribed: false,
 	}
 
 	return sub
