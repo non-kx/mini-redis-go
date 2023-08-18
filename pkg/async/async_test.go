@@ -42,14 +42,8 @@ func TestDoAsync(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := Async(tt.args.f)
-			// if !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("DoAsync() got = %v, want %v", got, tt.want)
-			// }
-			// if !reflect.DeepEqual(got1, tt.want1) {
-			// 	t.Errorf("DoAsync() got1 = %v, want %v", got1, tt.want1)
-			// }
-
 			res, err := Await(got, got1)
+
 			if res != "s1s2" {
 				t.Errorf("DoAsync() got = %v, want %v", res, "s1s2")
 			}

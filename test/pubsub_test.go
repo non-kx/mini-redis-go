@@ -17,8 +17,6 @@ func Test_receive_message_subscribed_topic(t *testing.T) {
 		err error
 	)
 
-	startTestServer(t)
-
 	subclient = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
 	err = subclient.Connect("", "")
 	if err != nil {

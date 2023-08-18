@@ -16,8 +16,6 @@ func Test_redis(t *testing.T) {
 		err error
 	)
 
-	startTestServer(t)
-
 	client = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
 	err = client.Connect("", "")
 	if err != nil {

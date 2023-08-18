@@ -18,10 +18,6 @@ type PubsubRequestBody struct {
 	Value tlvpac.TypeLengthValue
 }
 
-// func (b *PubsubRequestBody) GetLen() uint32 {
-// 	return uint32(TopicDataLength) + uint32(ValLenDataLength) + b.Len
-// }
-
 func (b *PubsubRequestBody) ReadFrom(r io.Reader) (int64, error) {
 	var (
 		typ   uint8

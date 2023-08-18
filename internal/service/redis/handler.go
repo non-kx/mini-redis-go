@@ -18,7 +18,7 @@ func HandleRequest(ctx *payload.RequestContext) error {
 	body = ctx.Payload.Body
 
 	redisBody := new(payload.RedisRequestBody)
-	err = redisBody.ReadFromIO(bytes.NewReader(body))
+	_, err = redisBody.ReadFrom(bytes.NewReader(body))
 	if err != nil {
 		return err
 	}

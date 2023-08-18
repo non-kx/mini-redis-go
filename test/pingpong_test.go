@@ -15,8 +15,6 @@ func Test_pingpong(t *testing.T) {
 		err error
 	)
 
-	startTestServer(t)
-
 	client = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
 	err = client.Connect("", "")
 	if err != nil {
@@ -42,4 +40,8 @@ func Test_pingpong(t *testing.T) {
 
 		assert.Equal(t, s, resp)
 	})
+}
+
+func Test_secure_pingpong(t *testing.T) {
+
 }

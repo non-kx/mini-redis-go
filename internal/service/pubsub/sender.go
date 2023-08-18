@@ -27,8 +27,7 @@ func SendSubRequest(conn *net.Conn, topic string) (*Subscriber, error) {
 		return nil, err
 	}
 
-	resp := new(payload.ResponsePayload)
-	_, err = resp.ReadFrom(*conn)
+	_, err = payload.ReadResponse(*conn)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +57,7 @@ func SendPubRequest(conn *net.Conn, topic string, val tlv.TypeLengthValue) (stri
 		return "", err
 	}
 
-	resp := new(payload.ResponsePayload)
-	_, err = resp.ReadFrom(*conn)
+	resp, err := payload.ReadResponse(*conn)
 	if err != nil {
 		return "", err
 	}

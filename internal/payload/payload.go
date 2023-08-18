@@ -210,3 +210,13 @@ func (res *ResponsePayload) WriteTo(w io.Writer) (int64, error) {
 
 	return n, nil
 }
+
+func ReadResponse(r io.Reader) (*ResponsePayload, error) {
+	res := new(ResponsePayload)
+	_, err := res.ReadFrom(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

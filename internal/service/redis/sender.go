@@ -10,7 +10,6 @@ import (
 func SendGetRequest(conn *net.Conn, key string) (tlv.TLVCompatible, error) {
 	body := payload.RedisRequestBody{
 		Key:   key,
-		Len:   0,
 		Value: []byte{},
 	}
 	rawbod, err := body.ToTLV()
@@ -28,8 +27,7 @@ func SendGetRequest(conn *net.Conn, key string) (tlv.TLVCompatible, error) {
 		return nil, err
 	}
 
-	resp := new(payload.ResponsePayload)
-	_, err = resp.ReadFrom(*conn)
+	resp, err := payload.ReadResponse(*conn)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +58,6 @@ func SendGetRequest(conn *net.Conn, key string) (tlv.TLVCompatible, error) {
 func SendSetRequest(conn *net.Conn, key string, val tlv.TypeLengthValue) (string, error) {
 	body := payload.RedisRequestBody{
 		Key:   key,
-		Len:   uint32(len(val)),
 		Value: val,
 	}
 	rawbod, err := body.ToTLV()
@@ -78,8 +75,7 @@ func SendSetRequest(conn *net.Conn, key string, val tlv.TypeLengthValue) (string
 		return "", err
 	}
 
-	resp := new(payload.ResponsePayload)
-	_, err = resp.ReadFrom(*conn)
+	resp, err := payload.ReadResponse(*conn)
 	if err != nil {
 		return "", err
 	}
