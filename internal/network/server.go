@@ -82,8 +82,8 @@ func (s *Server) HandleConnection(conn *net.Conn) error {
 	}
 }
 
-func NewServer(network string, port string, cert *string, key *string) (*Server, error) {
-	l, err := net.Listen(network, port)
+func NewServer(network string, port string, cert string, key string) (*Server, error) {
+	l, err := GetListener(network, port, cert, key)
 	if err != nil {
 		return nil, err
 	}

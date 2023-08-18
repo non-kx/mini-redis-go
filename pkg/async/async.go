@@ -4,7 +4,7 @@ type (
 	ResChan chan any
 	ErrChan chan error
 
-	Anyfunc func(...any) (any, error)
+	Anyfunc func() (any, error)
 )
 
 func Await(rc ResChan, ec ErrChan) (any, error) {
@@ -20,7 +20,7 @@ func Await(rc ResChan, ec ErrChan) (any, error) {
 	}
 }
 
-func Async(f Anyfunc, args ...any) (ResChan, ErrChan) {
+func Async(f Anyfunc) (ResChan, ErrChan) {
 	var (
 		reschan ResChan = make(ResChan)
 		errchan ErrChan = make(ErrChan)
@@ -29,7 +29,7 @@ func Async(f Anyfunc, args ...any) (ResChan, ErrChan) {
 		defer close(reschan)
 		defer close(errchan)
 
-		res, err := f(args...)
+		res, err := f()
 		if err != nil {
 			errchan <- err
 		}

@@ -64,11 +64,15 @@ func main() {
 	var (
 		host string
 		port string
+		cert string
+		key  string
 		cmd  string
 		vals []string
 	)
 	flag.StringVar(&host, "h", constant.DefaultServerHost, "host for client to connect to")
 	flag.StringVar(&port, "p", constant.DefaultServerPort, "port for client to connect to")
+	flag.StringVar(&cert, "cert", "", "absolute path to cert file for ssl")
+	flag.StringVar(&key, "key", "", "absolute path to key file for ssl")
 	flag.StringVar(&cmd, "c", "get", "command to use")
 
 	flag.Parse()
@@ -79,7 +83,7 @@ func main() {
 	client := network.NewClient(constant.Protocol, constant.DefaultServerUrl)
 	log.Println("Start redis client, try connecting to:", connstr)
 
-	err := client.Connect()
+	err := client.Connect(cert, key)
 	if err != nil {
 		fmt.Println(err)
 		return

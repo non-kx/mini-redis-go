@@ -16,11 +16,11 @@ func main() {
 	)
 
 	flag.StringVar(&port, "p", constant.DefaultServerPort, "port that server will listen on")
-	flag.StringVar(&cert, "cert", constant.DefaultServerPort, "absolute path to cert file for ssl")
-	flag.StringVar(&key, "key", constant.DefaultServerPort, "absolute path to key file for ssl")
+	flag.StringVar(&cert, "cert", "", "absolute path to cert file for ssl")
+	flag.StringVar(&key, "key", "", "absolute path to key file for ssl")
 	flag.Parse()
 
-	serv, err := network.NewServer(constant.Protocol, ":"+port, nil, nil)
+	serv, err := network.NewServer(constant.Protocol, ":"+port, cert, key)
 	if err != nil {
 		log.Fatal(err)
 		return

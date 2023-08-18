@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"bitbucket.org/non-pn/mini-redis-go/internal/constant"
 )
@@ -16,19 +17,28 @@ type IKVStore[T any] interface {
 }
 
 type KVStore[T any] struct {
+	sync.RWMutex
 	Storage   map[string]T
 	CachePath *string
 }
 
 func (kv *KVStore[T]) Get(k string) T {
-	return kv.Storage[k]
+	kv.RLock()
+	defer kv.RUnlock()
+	v := kv.Storage[k]
+
+	return v
 }
 
 func (kv *KVStore[T]) Set(k string, v T) {
+	kv.Lock()
+	defer kv.Unlock()
 	kv.Storage[k] = v
 }
 
 func (kv *KVStore[T]) Delete(k string) {
+	kv.Lock()
+	defer kv.Unlock()
 	delete(kv.Storage, k)
 }
 

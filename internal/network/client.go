@@ -1,10 +1,7 @@
 package network
 
 import (
-	"bufio"
-	"fmt"
 	"net"
-	"strings"
 
 	"bitbucket.org/non-pn/mini-redis-go/internal/service/pingpong"
 	"bitbucket.org/non-pn/mini-redis-go/internal/service/pubsub"
@@ -24,8 +21,8 @@ type Client struct {
 	Connection *net.Conn
 }
 
-func (c *Client) Connect() error {
-	conn, err := net.Dial(c.Network, c.Host)
+func (c *Client) Connect(cert string, key string) error {
+	conn, err := EstablishConnection(c.Network, c.Host, cert, key)
 	if err != nil {
 		return err
 	}
@@ -42,18 +39,6 @@ func (c *Client) Close() error {
 	}
 
 	return nil
-}
-
-func (c *Client) Send(data []byte) ([]byte, error) {
-	fmt.Fprintf(*c.Connection, string(data)+"\n")
-	// (*c.Connection).Write(data)
-
-	resp, err := bufio.NewReader(*c.Connection).ReadString('\n')
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte(strings.TrimSuffix(resp, "\n")), nil
 }
 
 func (c *Client) Ping(msg *string) (string, error) {

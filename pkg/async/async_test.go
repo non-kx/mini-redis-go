@@ -1,7 +1,6 @@
 package async
 
 import (
-	"errors"
 	"testing"
 )
 
@@ -23,20 +22,18 @@ func TestDoAsync(t *testing.T) {
 		{
 			name: "should return string result",
 			args: args{
-				f: func(a ...any) (any, error) {
-					str1, ok := a[0].(string)
-					if !ok {
-						return "", errors.New("Error no string")
-					}
+				f: func() (any, error) {
+					str, err := func() (string, error) {
+						str1 := "s1"
+						str2 := "s2"
 
-					str2, ok := a[1].(string)
-					if !ok {
-						return "", errors.New("Error no string")
+						return str1 + str2, nil
+					}()
+					if err != nil {
+						return nil, err
 					}
-
-					return str1 + str2, nil
+					return str, err
 				},
-				args: []any{"s1", "s2"},
 			},
 			want:  make(ResChan),
 			want1: make(ErrChan),
@@ -44,7 +41,7 @@ func TestDoAsync(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := Async(tt.args.f, tt.args.args...)
+			got, got1 := Async(tt.args.f)
 			// if !reflect.DeepEqual(got, tt.want) {
 			// 	t.Errorf("DoAsync() got = %v, want %v", got, tt.want)
 			// }

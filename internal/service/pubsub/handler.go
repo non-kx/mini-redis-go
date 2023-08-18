@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/payload"
 	"bitbucket.org/non-pn/mini-redis-go/internal/service/internal/helper"
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
+	"bitbucket.org/non-pn/mini-redis-go/pkg/async"
 )
 
 func HandleRequest(ctx *payload.RequestContext) error {
@@ -75,7 +76,14 @@ func handlePubRequest(ctx *payload.RequestContext, body *payload.PubsubRequestBo
 		return err
 	}
 
-	err = broadCastMessage[*tlv.String](topic, smsg)
+	rc, ec := async.Async(func() (any, error) {
+		err := broadCastMessage[*tlv.String](topic, smsg)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	})
+	_, err = async.Await(rc, ec)
 	if err != nil {
 		return err
 	}
