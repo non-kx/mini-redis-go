@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
+	tlvpac "bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
 // type (
@@ -34,7 +34,7 @@ const (
 type RawRequestPayload []byte
 type RequestPayload struct {
 	Cmd  uint8
-	Body tlv.TypeLengthValue
+	Body tlvpac.TypeLengthValue
 }
 
 func (req *RequestPayload) ReadFrom(r io.Reader) (int64, error) {
@@ -78,7 +78,7 @@ func (req *RequestPayload) ReadFrom(r io.Reader) (int64, error) {
 
 func (req *RequestPayload) WriteTo(w io.Writer) (int64, error) {
 	var (
-		typ = tlv.RequestPayloadType
+		typ = tlvpac.RequestPayloadType
 		val []byte
 		n   int64
 
@@ -121,10 +121,30 @@ func (req *RequestPayload) WriteTo(w io.Writer) (int64, error) {
 	return n, nil
 }
 
+func (req *RequestPayload) FromTLV(tlv tlvpac.TypeLengthValue) error {
+	r := bytes.NewReader(tlv)
+	_, err := req.ReadFrom(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (req *RequestPayload) ToTLV() (tlvpac.TypeLengthValue, error) {
+	tlv := new(bytes.Buffer)
+	_, err := req.WriteTo(tlv)
+	if err != nil {
+		return nil, err
+	}
+
+	return tlvpac.TypeLengthValue(tlv.Bytes()), nil
+}
+
 type RawResponsePayload []byte
 type ResponsePayload struct {
 	Typ  uint8
-	Body tlv.TypeLengthValue
+	Body tlvpac.TypeLengthValue
 }
 
 func (res *ResponsePayload) ReadFrom(r io.Reader) (int64, error) {
@@ -168,7 +188,7 @@ func (res *ResponsePayload) ReadFrom(r io.Reader) (int64, error) {
 
 func (res *ResponsePayload) WriteTo(w io.Writer) (int64, error) {
 	var (
-		typ = tlv.RequestPayloadType
+		typ = tlvpac.RequestPayloadType
 		val []byte
 		n   int64
 
@@ -209,6 +229,26 @@ func (res *ResponsePayload) WriteTo(w io.Writer) (int64, error) {
 	n += int64(o)
 
 	return n, nil
+}
+
+func (res *ResponsePayload) FromTLV(tlv tlvpac.TypeLengthValue) error {
+	r := bytes.NewReader(tlv)
+	_, err := res.ReadFrom(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (res *ResponsePayload) ToTLV() (tlvpac.TypeLengthValue, error) {
+	tlv := new(bytes.Buffer)
+	_, err := res.WriteTo(tlv)
+	if err != nil {
+		return nil, err
+	}
+
+	return tlvpac.TypeLengthValue(tlv.Bytes()), nil
 }
 
 func ReadResponse(r io.Reader) (*ResponsePayload, error) {

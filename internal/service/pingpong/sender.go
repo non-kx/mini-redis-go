@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
-func SendPingRequest(conn *net.Conn, msg *string) (*tlv.String, error) {
+func SendPingRequest(conn net.Conn, msg *string) (*tlv.String, error) {
 	if msg == nil {
 		ping := string("PING")
 		msg = &ping
@@ -23,13 +23,13 @@ func SendPingRequest(conn *net.Conn, msg *string) (*tlv.String, error) {
 		Body: msgtlv,
 	}
 
-	_, err = req.WriteTo(*conn)
+	_, err = req.WriteTo(conn)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := tlv.String("")
-	_, err = resp.ReadFrom(*conn)
+	_, err = resp.ReadFrom(conn)
 	if err != nil {
 		return nil, err
 	}

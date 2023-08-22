@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
-func SendSubRequest(conn *net.Conn, topic string) (*Subscriber, error) {
+func SendSubRequest(conn net.Conn, topic string) (*Subscriber, error) {
 	body := payload.PubsubRequestBody{
 		Topic: topic,
 		Value: []byte{},
@@ -22,12 +22,12 @@ func SendSubRequest(conn *net.Conn, topic string) (*Subscriber, error) {
 		Body: rawbod,
 	}
 
-	_, err = req.WriteTo(*conn)
+	_, err = req.WriteTo(conn)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = payload.ReadResponse(*conn)
+	_, err = payload.ReadResponse(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func SendSubRequest(conn *net.Conn, topic string) (*Subscriber, error) {
 	return sub, nil
 }
 
-func SendPubRequest(conn *net.Conn, topic string, val tlv.TypeLengthValue) (string, error) {
+func SendPubRequest(conn net.Conn, topic string, val tlv.TypeLengthValue) (string, error) {
 	body := payload.PubsubRequestBody{
 		Topic: topic,
 		Value: val,
@@ -52,12 +52,12 @@ func SendPubRequest(conn *net.Conn, topic string, val tlv.TypeLengthValue) (stri
 		Body: rawbod,
 	}
 
-	_, err = req.WriteTo(*conn)
+	_, err = req.WriteTo(conn)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := payload.ReadResponse(*conn)
+	resp, err := payload.ReadResponse(conn)
 	if err != nil {
 		return "", err
 	}

@@ -2,7 +2,7 @@
 // Source: ./internal/payload/context.go
 
 // Package mock_payload is a generated GoMock package.
-package mock
+package mock_payload
 
 import (
 	reflect "reflect"

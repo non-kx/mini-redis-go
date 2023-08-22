@@ -11,14 +11,15 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/pkg/async"
 )
 
-func HandleRequest(ctx *payload.RequestContext) error {
+func HandleRequest(ctx payload.IRequestContext) error {
 	var (
 		cmd  uint8
 		body tlv.TypeLengthValue
 		err  error
 	)
-	cmd = ctx.Payload.Cmd
-	body = ctx.Payload.Body
+	pl := ctx.GetPayload()
+	cmd = pl.Cmd
+	body = pl.Body
 
 	pubsubBody := new(payload.PubsubRequestBody)
 	_, err = pubsubBody.ReadFrom(bytes.NewReader(body))
@@ -40,16 +41,16 @@ func HandleRequest(ctx *payload.RequestContext) error {
 	return nil
 }
 
-func handleSubRequest(ctx *payload.RequestContext, body *payload.PubsubRequestBody) error {
+func handleSubRequest(ctx payload.IRequestContext, body *payload.PubsubRequestBody) error {
 	var (
 		err error
 	)
-	topic := ctx.PubSubDb.Get(body.Topic)
+	topic := ctx.GetPubsub(body.Topic)
 	if topic == nil || !topic.DidInit() {
 		topic = model.NewTopic[*tlv.String](body.Topic)
-		ctx.PubSubDb.Set(body.Topic, topic)
+		ctx.SetPubsub(body.Topic, topic)
 	}
-	topic.AddConn(ctx.Conn)
+	topic.AddConn(ctx.GetConn())
 
 	err = helper.ResponseWithString("OK", ctx)
 	if err != nil {
@@ -58,15 +59,15 @@ func handleSubRequest(ctx *payload.RequestContext, body *payload.PubsubRequestBo
 
 	return nil
 }
-func handlePubRequest(ctx *payload.RequestContext, body *payload.PubsubRequestBody) error {
+func handlePubRequest(ctx payload.IRequestContext, body *payload.PubsubRequestBody) error {
 	var (
 		err error
 	)
 
-	topic := ctx.PubSubDb.Get(body.Topic)
+	topic := ctx.GetPubsub(body.Topic)
 	if topic == nil || !topic.DidInit() {
 		topic = model.NewTopic[*tlv.String](body.Topic)
-		ctx.PubSubDb.Set(body.Topic, topic)
+		ctx.SetPubsub(body.Topic, topic)
 	}
 
 	msg := body.Value
@@ -101,7 +102,7 @@ func broadCastMessage[T tlv.TLVCompatible](topic *model.Topic[T], msg T) error {
 	for _, conn := range conns {
 		c := conn
 
-		log.Println("Relaying message to:", (*c).RemoteAddr().String())
+		log.Println("Relaying message to:", c.RemoteAddr().String())
 
 		raw, err := msg.ToTLV()
 		if err != nil {
@@ -111,7 +112,7 @@ func broadCastMessage[T tlv.TLVCompatible](topic *model.Topic[T], msg T) error {
 			Typ:  tlv.MsgType,
 			Body: raw,
 		}
-		resp.WriteTo(*c)
+		resp.WriteTo(c)
 	}
 	return nil
 }

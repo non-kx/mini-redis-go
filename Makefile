@@ -4,5 +4,14 @@ build:
 	go build -o ../build ./...
 	cd ..
 
+test-coverage:
+	gocov test \
+        ./internal/db/... \
+        ./internal/network/... \
+        ./internal/service/... \
+		./internal/tools/... \
+		./pkg/... \
+	| gocov report
+
 test-integration:
 	go test -v ./test/...

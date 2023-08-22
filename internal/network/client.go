@@ -18,7 +18,7 @@ type IClient interface {
 type Client struct {
 	Network    string
 	Host       string
-	Connection *net.Conn
+	Connection net.Conn
 }
 
 func (c *Client) Connect(cert string, key string) error {
@@ -27,16 +27,18 @@ func (c *Client) Connect(cert string, key string) error {
 		return err
 	}
 
-	c.Connection = &conn
+	c.Connection = conn
 
 	return nil
 }
 
 func (c *Client) Close() error {
-	err := (*c.Connection).Close()
+	err := c.Connection.Close()
 	if err != nil {
 		return err
 	}
+
+	c.Connection = nil
 
 	return nil
 }

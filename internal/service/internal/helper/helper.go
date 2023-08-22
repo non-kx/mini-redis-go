@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
-func ResponseWithString(s string, ctx *payload.RequestContext) error {
+func ResponseWithString(s string, ctx payload.IRequestContext) error {
 	ss := tlv.String(s)
 	raw, err := ss.ToTLV()
 	if err != nil {
@@ -21,7 +21,7 @@ func ResponseWithString(s string, ctx *payload.RequestContext) error {
 		Typ:  typ,
 		Body: raw,
 	}
-	_, err = resp.WriteTo(*ctx.Conn)
+	_, err = resp.WriteTo(ctx.GetConn())
 	if err != nil {
 		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)

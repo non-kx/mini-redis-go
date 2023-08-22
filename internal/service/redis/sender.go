@@ -7,7 +7,7 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
-func SendGetRequest(conn *net.Conn, key string) (tlv.TLVCompatible, error) {
+func SendGetRequest(conn net.Conn, key string) (tlv.TLVCompatible, error) {
 	body := payload.RedisRequestBody{
 		Key:   key,
 		Value: []byte{},
@@ -22,12 +22,12 @@ func SendGetRequest(conn *net.Conn, key string) (tlv.TLVCompatible, error) {
 		Body: rawbod,
 	}
 
-	_, err = req.WriteTo(*conn)
+	_, err = req.WriteTo(conn)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := payload.ReadResponse(*conn)
+	resp, err := payload.ReadResponse(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func SendGetRequest(conn *net.Conn, key string) (tlv.TLVCompatible, error) {
 	return val, nil
 }
 
-func SendSetRequest(conn *net.Conn, key string, val tlv.TypeLengthValue) (string, error) {
+func SendSetRequest(conn net.Conn, key string, val tlv.TypeLengthValue) (string, error) {
 	body := payload.RedisRequestBody{
 		Key:   key,
 		Value: val,
@@ -70,12 +70,12 @@ func SendSetRequest(conn *net.Conn, key string, val tlv.TypeLengthValue) (string
 		Body: rawbod,
 	}
 
-	_, err = req.WriteTo(*conn)
+	_, err = req.WriteTo(conn)
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := payload.ReadResponse(*conn)
+	resp, err := payload.ReadResponse(conn)
 	if err != nil {
 		return "", err
 	}

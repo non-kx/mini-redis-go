@@ -11,14 +11,14 @@ import (
 )
 
 type Subscriber struct {
-	Conn         *net.Conn
+	Conn         net.Conn
 	IsSubscribed bool
 }
 
 func (sub *Subscriber) NextMessage() (*tlv.String, error) {
 	if !sub.IsSubscribed {
 		pl := new(payload.ResponsePayload)
-		_, err := pl.ReadFrom(*sub.Conn)
+		_, err := pl.ReadFrom(sub.Conn)
 		if err != nil {
 			if err == io.EOF {
 				log.Println("Client disconnected")
@@ -49,7 +49,7 @@ func (sub *Subscriber) Subscribe(handler func(string)) error {
 	}()
 	for {
 		pl := new(payload.ResponsePayload)
-		_, err := pl.ReadFrom(*sub.Conn)
+		_, err := pl.ReadFrom(sub.Conn)
 		if err != nil {
 			if err == io.EOF {
 				log.Println("Client disconnected")
@@ -71,7 +71,7 @@ func (sub *Subscriber) Subscribe(handler func(string)) error {
 	}
 }
 
-func NewSubscriber(conn *net.Conn) *Subscriber {
+func NewSubscriber(conn net.Conn) *Subscriber {
 	sub := &Subscriber{
 		Conn:         conn,
 		IsSubscribed: false,

@@ -2,7 +2,7 @@
 // Source: /usr/local/go/src/net/net.go
 
 // Package mock_net is a generated GoMock package.
-package mock
+package mock_net
 
 import (
 	reflect "reflect"

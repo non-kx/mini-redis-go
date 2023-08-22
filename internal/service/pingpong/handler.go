@@ -8,8 +8,8 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
-func HandleRequest(ctx *payload.RequestContext) error {
-	body := ctx.Payload.Body
+func HandleRequest(ctx payload.IRequestContext) error {
+	body := ctx.GetPayload().Body
 	msg := tlv.String("")
 	_, err := msg.ReadFrom(bytes.NewReader(body))
 	if err != nil {
@@ -24,7 +24,7 @@ func HandleRequest(ctx *payload.RequestContext) error {
 		pong = msg
 	}
 
-	_, err = pong.WriteTo(*ctx.Conn)
+	_, err = pong.WriteTo(ctx.GetConn())
 	if err != nil {
 		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)

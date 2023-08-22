@@ -1,6 +1,7 @@
 package db
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,4 +54,32 @@ func TestKVStore_Delete(t *testing.T) {
 	val = kvstore.Get(testkey)
 
 	assert.Equal(t, "", val)
+}
+
+func TestLoadFromNilFile(t *testing.T) {
+	storage := loadStorageFromFile[string](nil)
+
+	assert.Equal(t, 0, len(storage))
+}
+
+func TestLoadFromFile(t *testing.T) {
+	path, err := filepath.Abs("./test/test_cache.json")
+
+	assert.Nil(t, err)
+
+	storage := loadStorageFromFile[string](&path)
+
+	assert.Greater(t, len(storage), 0)
+}
+
+func TestCacheStorageToFile(t *testing.T) {
+	path, _ := filepath.Abs("./test/test_cache.json")
+	kvstore := &KVStore[string]{
+		Storage:   map[string]string{"test": "test", "a": "a", "b": "b"},
+		CachePath: &path,
+	}
+
+	err := kvstore.CacheStorage()
+
+	assert.Nil(t, err)
 }

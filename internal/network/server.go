@@ -19,16 +19,16 @@ import (
 type IServer interface {
 	Start() error
 	Stop() error
-	HandleConnection(conn *net.Conn) error
-	HandleRequest(ctx *payload.RequestContext) error
+	HandleConnection(conn net.Conn) error
 }
 
 type Server struct {
 	Port        string
 	Listener    net.Listener
-	Connections []*net.Conn
+	Connections []net.Conn
+	Service     service.IService
 	RedisDb     *db.KVStore[[]byte]
-	PubSubDb    *db.KVStore[*model.Topic[*tlv.String]]
+	PubsubDb    *db.KVStore[*model.Topic[*tlv.String]]
 }
 
 func (s *Server) Start() error {
@@ -39,27 +39,32 @@ func (s *Server) Start() error {
 		}
 
 		log.Println("New connection from:", c.RemoteAddr())
-		go s.HandleConnection(&c)
+		go s.HandleConnection(c)
 	}
 }
 
 func (s *Server) Stop() error {
 	for _, conn := range s.Connections {
-		err := (*conn).Close()
+		err := conn.Close()
 		if err != nil {
 			return err
 		}
 	}
 
+	err := s.Listener.Close()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (s *Server) HandleConnection(conn *net.Conn) error {
+func (s *Server) HandleConnection(conn net.Conn) error {
 	s.Connections = append(s.Connections, conn)
 
 	for {
 		pl := new(payload.RequestPayload)
-		_, err := pl.ReadFrom(*conn)
+		_, err := pl.ReadFrom(conn)
 		// Handle remove conn from arr
 		if err != nil {
 			if err == io.EOF {
@@ -73,9 +78,9 @@ func (s *Server) HandleConnection(conn *net.Conn) error {
 			Now:      time.Now(),
 			Payload:  pl,
 			RedisDb:  s.RedisDb,
-			PubSubDb: s.PubSubDb,
+			PubsubDb: s.PubsubDb,
 		}
-		err = service.HandleRequest(reqctx)
+		err = s.Service.HandleRequest(reqctx)
 		if err != nil {
 			return err
 		}
@@ -92,8 +97,9 @@ func NewServer(network string, port string, cert string, key string) (*Server, e
 	return &Server{
 		Port:        port,
 		Listener:    l,
-		Connections: make([]*net.Conn, 0, 5),
+		Connections: make([]net.Conn, 0, 5),
+		Service:     service.NewService(),
 		RedisDb:     db.NewKVStore[[]byte](&redisCache),
-		PubSubDb:    db.NewKVStore[*model.Topic[*tlv.String]](nil),
+		PubsubDb:    db.NewKVStore[*model.Topic[*tlv.String]](nil),
 	}, nil
 }

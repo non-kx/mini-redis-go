@@ -8,14 +8,15 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
-func HandleRequest(ctx *payload.RequestContext) error {
+func HandleRequest(ctx payload.IRequestContext) error {
 	var (
 		cmd  uint8
 		body tlv.TypeLengthValue
 		err  error
 	)
-	cmd = ctx.Payload.Cmd
-	body = ctx.Payload.Body
+	pl := ctx.GetPayload()
+	cmd = pl.Cmd
+	body = pl.Body
 
 	redisBody := new(payload.RedisRequestBody)
 	_, err = redisBody.ReadFrom(bytes.NewReader(body))
@@ -37,13 +38,13 @@ func HandleRequest(ctx *payload.RequestContext) error {
 	return nil
 }
 
-func handleGetRequest(ctx *payload.RequestContext, body *payload.RedisRequestBody) error {
+func handleGetRequest(ctx payload.IRequestContext, body *payload.RedisRequestBody) error {
 	var (
 		raw tlv.TypeLengthValue
 		typ uint8
 		err error
 	)
-	data := ctx.RedisDb.Get(body.Key)
+	data := ctx.GetRedis(body.Key)
 	raw = tlv.TypeLengthValue(data)
 	typ = raw.GetType()
 
@@ -51,7 +52,7 @@ func handleGetRequest(ctx *payload.RequestContext, body *payload.RedisRequestBod
 		Typ:  typ,
 		Body: raw,
 	}
-	_, err = resp.WriteTo(*ctx.Conn)
+	_, err = resp.WriteTo(ctx.GetConn())
 	if err != nil {
 		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)
@@ -59,12 +60,12 @@ func handleGetRequest(ctx *payload.RequestContext, body *payload.RedisRequestBod
 	}
 	return nil
 }
-func handleSetRequest(ctx *payload.RequestContext, body *payload.RedisRequestBody) error {
+func handleSetRequest(ctx payload.IRequestContext, body *payload.RedisRequestBody) error {
 	var (
 		resp payload.ResponsePayload
 		err  error
 	)
-	ctx.RedisDb.Set(body.Key, body.Value)
+	ctx.SetRedis(body.Key, body.Value)
 
 	s := tlv.String("OK")
 	raw, err := s.ToTLV()
@@ -78,7 +79,7 @@ func handleSetRequest(ctx *payload.RequestContext, body *payload.RedisRequestBod
 		Typ:  tlv.StringType,
 		Body: raw,
 	}
-	_, err = resp.WriteTo(*ctx.Conn)
+	_, err = resp.WriteTo(ctx.GetConn())
 	if err != nil {
 		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)
