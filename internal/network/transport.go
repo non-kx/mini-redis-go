@@ -9,13 +9,25 @@ import (
 )
 
 type Transporter interface {
-	GetListener(network string, port string, cert string, key string) (net.Listener, error)
-	EstablishConnection(network string, url string, cert string, key string) (net.Conn, error)
+	GetListener() (net.Listener, error)
+	EstablishConnection() (net.Conn, error)
 }
 
-func GetListener(network string, port string, cert string, key string) (net.Listener, error) {
+type TcpTransport struct {
+	Network  string
+	Host     string
+	Port     string
+	CertPath string
+	KeyPath  string
+	Dialer   Dialer
+}
+
+func (t *TcpTransport) GetListener() (net.Listener, error) {
 	var (
-		l   net.Listener
+		l             net.Listener
+		cert, key     = t.CertPath, t.KeyPath
+		network, port = t.Network, t.Port
+
 		err error
 	)
 	if cert == "" || key == "" {
@@ -37,13 +49,17 @@ func GetListener(network string, port string, cert string, key string) (net.List
 	return l, nil
 }
 
-func EstablishConnection(network string, url string, cert string, key string) (net.Conn, error) {
+func (t *TcpTransport) EstablishConnection() (net.Conn, error) {
 	var (
-		conn net.Conn
-		err  error
+		conn      net.Conn
+		cert, key = t.CertPath, t.KeyPath
+		network   = t.Network
+		url       = t.Host + t.Port
+
+		err error
 	)
 	if cert == "" || key == "" {
-		conn, err = net.Dial(network, url)
+		conn, err = t.Dialer.Dial(network, url)
 		if err != nil {
 			return nil, err
 		}
@@ -53,10 +69,21 @@ func EstablishConnection(network string, url string, cert string, key string) (n
 
 	log.Println("Use secure tcp")
 	tlsconf, err := ssl.GetClientTlsConfig(cert, key)
-	conn, err = tls.Dial(network, url, tlsconf)
+	conn, err = t.Dialer.SecureDial(network, url, tlsconf)
 	if err != nil {
 		return nil, err
 	}
 
 	return conn, nil
+}
+
+func NewTcpTransport(network string, host string, port string, cert string, key string) Transporter {
+	return &TcpTransport{
+		Network:  network,
+		Host:     host,
+		Port:     port,
+		CertPath: cert,
+		KeyPath:  key,
+		Dialer:   &TcpDialer{},
+	}
 }

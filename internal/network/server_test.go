@@ -1,6 +1,8 @@
 package network
 
 import (
+	"errors"
+	"io"
 	"net"
 	"path/filepath"
 	"testing"
@@ -9,11 +11,30 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/db"
 	"bitbucket.org/non-pn/mini-redis-go/internal/db/model"
 	mocknet "bitbucket.org/non-pn/mini-redis-go/internal/mock/net"
+	mockservice "bitbucket.org/non-pn/mini-redis-go/internal/mock/service"
+	"bitbucket.org/non-pn/mini-redis-go/internal/payload"
 	"bitbucket.org/non-pn/mini-redis-go/internal/service"
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
+
+func expectReadRequestFromConn(t *testing.T, conn *mocknet.MockConn, cmd uint8, body tlv.TypeLengthValue) {
+	req := payload.RequestPayload{
+		Cmd:  cmd,
+		Body: body,
+	}
+	raw, err := req.ToTLV()
+	assert.Nil(t, err)
+
+	typ := raw[0:1]
+	blen := raw[1:5]
+	val := raw[5:]
+
+	conn.EXPECT().Read(gomock.Any()).SetArg(0, typ).Return(len(typ), nil)
+	conn.EXPECT().Read(gomock.Any()).SetArg(0, blen).Return(len(blen), nil)
+	conn.EXPECT().Read(gomock.Any()).SetArg(0, val).Return(len(val), nil)
+}
 
 func TestNewServer(t *testing.T) {
 	serv, err := NewServer(constant.Protocol, ":"+constant.DefaultServerPort, "", "")
@@ -70,28 +91,49 @@ func TestStopServer(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// func TestHandleConnection(t *testing.T) {
-// 	ctrl := gomock.NewController(t)
-// 	listener := mocknet.NewMockListener(ctrl)
-// 	conn := mocknet.NewMockConn(ctrl)
-// 	service := mockservice.NewMockIService(ctrl)
+func TestHandleConnectionHandleRequestError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	listener := mocknet.NewMockListener(ctrl)
+	conn := mocknet.NewMockConn(ctrl)
+	service := mockservice.NewMockIService(ctrl)
 
-// 	server := &Server{
-// 		Port:        ":6337",
-// 		Listener:    listener,
-// 		Connections: []net.Conn{},
-// 		Service:     service,
-// 		RedisDb:     &db.KVStore[[]byte]{},
-// 		PubsubDb:    &db.KVStore[*model.Topic[*tlv.String]]{},
-// 	}
+	server := &Server{
+		Port:        ":6337",
+		Listener:    listener,
+		Connections: []net.Conn{},
+		Service:     service,
+		RedisDb:     &db.KVStore[[]byte]{},
+		PubsubDb:    &db.KVStore[*model.Topic[*tlv.String]]{},
+	}
 
-// 	conn.EXPECT().Read(gomock.Any()).AnyTimes()
-// 	service.EXPECT().HandleRequest(gomock.Any()).Times(1)
+	expectReadRequestFromConn(t, conn, payload.GetCmd, []byte{})
 
-// 	err := server.HandleConnection(conn)
+	mockerr := errors.New("Some handle request error")
+	service.EXPECT().HandleRequest(gomock.Any()).AnyTimes().Return(mockerr)
 
-// 	assert.Nil(t, err)
-// 	assert.Equal(t, 1, len(server.Connections))
+	err := server.HandleConnection(conn)
 
-// 	server.Stop()
-// }
+	assert.Equal(t, mockerr, err)
+}
+
+func TestHandleConnectionEOF(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	listener := mocknet.NewMockListener(ctrl)
+	conn := mocknet.NewMockConn(ctrl)
+	service := mockservice.NewMockIService(ctrl)
+
+	server := &Server{
+		Port:        ":6337",
+		Listener:    listener,
+		Connections: []net.Conn{},
+		Service:     service,
+		RedisDb:     &db.KVStore[[]byte]{},
+		PubsubDb:    &db.KVStore[*model.Topic[*tlv.String]]{},
+	}
+	service.EXPECT().HandleRequest(conn).AnyTimes()
+	conn.EXPECT().Read(gomock.Any()).Return(0, io.EOF)
+
+	err := server.HandleConnection(conn)
+
+	assert.Equal(t, io.EOF, err)
+}

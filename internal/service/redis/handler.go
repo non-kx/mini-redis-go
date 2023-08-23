@@ -54,7 +54,6 @@ func handleGetRequest(ctx payload.IRequestContext, body *payload.RedisRequestBod
 	}
 	_, err = resp.WriteTo(ctx.GetConn())
 	if err != nil {
-		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)
 		return err
 	}
@@ -81,7 +80,6 @@ func handleSetRequest(ctx payload.IRequestContext, body *payload.RedisRequestBod
 	}
 	_, err = resp.WriteTo(ctx.GetConn())
 	if err != nil {
-		err = ctx.Error(uint16(tlv.DataTransformError), tlv.ErrMsg[tlv.DataTransformError])
 		log.Println(err)
 		return err
 	}

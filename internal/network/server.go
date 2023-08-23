@@ -24,6 +24,7 @@ type IServer interface {
 
 type Server struct {
 	Port        string
+	Transport   Transporter
 	Listener    net.Listener
 	Connections []net.Conn
 	Service     service.IService
@@ -51,9 +52,11 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	err := s.Listener.Close()
-	if err != nil {
-		return err
+	if s.Listener != nil {
+		err := s.Listener.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -88,7 +91,8 @@ func (s *Server) HandleConnection(conn net.Conn) error {
 }
 
 func NewServer(network string, port string, cert string, key string) (*Server, error) {
-	l, err := GetListener(network, port, cert, key)
+	transport := NewTcpTransport(network, "", port, cert, key)
+	l, err := transport.GetListener()
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +100,7 @@ func NewServer(network string, port string, cert string, key string) (*Server, e
 	redisCache := constant.DefaultRedisCachePath
 	return &Server{
 		Port:        port,
+		Transport:   transport,
 		Listener:    l,
 		Connections: make([]net.Conn, 0, 5),
 		Service:     service.NewService(),

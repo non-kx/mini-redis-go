@@ -79,11 +79,11 @@ func main() {
 	vals = flag.Args()
 
 	// Init client and try connect to host
-	connstr := host + ":" + port
-	client := network.NewClient(constant.Protocol, constant.DefaultServerUrl)
-	log.Println("Start redis client, try connecting to:", connstr)
+	port = ":" + port
+	client := network.NewClient(constant.Protocol, host, port, cert, key)
+	log.Println("Start redis client, try connecting to:", host+port)
 
-	err := client.Connect(cert, key)
+	err := client.Connect()
 	if err != nil {
 		fmt.Println(err)
 		return

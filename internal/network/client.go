@@ -17,12 +17,13 @@ type IClient interface {
 type Client struct {
 	Network    string
 	Host       string
+	Transport  Transporter
 	Connection net.Conn
 	Service    service.IService
 }
 
-func (c *Client) Connect(cert string, key string) error {
-	conn, err := EstablishConnection(c.Network, c.Host, cert, key)
+func (c *Client) Connect() error {
+	conn, err := c.Transport.EstablishConnection()
 	if err != nil {
 		return err
 	}
@@ -103,10 +104,11 @@ func (c *Client) Pub(topic string, msg string) (string, error) {
 	return resp, nil
 }
 
-func NewClient(network string, host string) *Client {
+func NewClient(network string, host string, port string, cert string, key string) *Client {
 	return &Client{
 		Network:    network,
 		Host:       host,
+		Transport:  NewTcpTransport(network, host, port, cert, key),
 		Connection: nil,
 		Service:    &service.Service{},
 	}

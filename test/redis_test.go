@@ -16,8 +16,8 @@ func Test_redis(t *testing.T) {
 		err error
 	)
 
-	client = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
-	err = client.Connect("", "")
+	client = network.NewClient(constant.Protocol, constant.DefaultServerHost, ":"+constant.DefaultServerPort, "", "")
+	err = client.Connect()
 	if err != nil {
 		t.Errorf("Got err = %v", err)
 	}
@@ -55,12 +55,4 @@ func Test_redis(t *testing.T) {
 		val, err := client.Get(k)
 		assert.Equal(t, v.String(), val.String())
 	})
-	// t.Run("it should not be able to use key length more that 16 character", func(t *testing.T) {
-	// 	k := "0123456789abcdefg"
-	// 	v := tlv.String("some")
-	// 	_, err := client.Set(k, &v)
-	// 	if assert.Error(t, err) {
-	// 		assert.EqualError(t, err, "")
-	// 	}
-	// })
 }

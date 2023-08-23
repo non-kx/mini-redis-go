@@ -29,7 +29,7 @@ func afterAll() {
 func TestMain(m *testing.M) {
 	beforeAll()
 	exitVal := m.Run()
-	afterAll()
+	// afterAll()
 
 	os.Exit(exitVal)
 }

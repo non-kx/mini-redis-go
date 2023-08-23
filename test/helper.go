@@ -71,8 +71,8 @@ func createTestServer() *network.Server {
 
 func createTestClient(t *testing.T) *network.Client {
 	cert, key := getClientCert()
-	client := network.NewClient(constant.Protocol, constant.DefaultServerUrl)
-	err := client.Connect(cert, key)
+	client := network.NewClient(constant.Protocol, constant.DefaultServerHost, ":"+constant.DefaultServerPort, cert, key)
+	err := client.Connect()
 	if err != nil {
 		t.Errorf("Got err = %v", err)
 	}

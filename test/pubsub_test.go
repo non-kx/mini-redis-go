@@ -17,15 +17,15 @@ func Test_receive_message_subscribed_topic(t *testing.T) {
 		err error
 	)
 
-	subclient = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
-	err = subclient.Connect("", "")
+	subclient = network.NewClient(constant.Protocol, constant.DefaultServerHost, ":"+constant.DefaultServerPort, "", "")
+	err = subclient.Connect()
 	if err != nil {
 		t.Errorf("Got err = %v", err)
 	}
 	defer subclient.Close()
 
-	pubclient = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
-	err = pubclient.Connect("", "")
+	pubclient = network.NewClient(constant.Protocol, constant.DefaultServerHost, ":"+constant.DefaultServerPort, "", "")
+	err = pubclient.Connect()
 	if err != nil {
 		t.Errorf("Got err = %v", err)
 	}

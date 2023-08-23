@@ -11,7 +11,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestSendGetRequest(t *testing.T) {
+func TestSendGetRequestStringVal(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	conn := mocknet.NewMockConn(ctrl)
 
@@ -31,6 +31,28 @@ func TestSendGetRequest(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, "value", val.String())
+}
+
+func TestSendGetRequestBinaryVal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	conn := mocknet.NewMockConn(ctrl)
+
+	key := "test_key"
+
+	reqbod := payload.RedisRequestBody{
+		Key: key,
+	}
+	rawreqbod, _ := reqbod.ToTLV()
+	test.ExpectWriteRequestToConn(t, conn, payload.GetCmd, rawreqbod)
+
+	resbod := tlv.Binary("value")
+	rawresbod, _ := resbod.ToTLV()
+	test.ExpectReadResponseFromConn(t, conn, tlv.BinaryType, rawresbod)
+
+	val, err := SendGetRequest(conn, key)
+
+	assert.Nil(t, err)
+	assert.Equal(t, resbod.String(), val.String())
 }
 
 func TestSendSetRequest(t *testing.T) {

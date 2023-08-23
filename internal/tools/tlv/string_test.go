@@ -63,3 +63,17 @@ func TestStringToTLV(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, testtlv, []byte(tlv))
 }
+
+func TestStringToString(t *testing.T) {
+	s := String("test_string")
+	ss := s.String()
+
+	assert.Equal(t, "test_string", ss)
+}
+
+func TestNilStringToString(t *testing.T) {
+	s := new(String)
+	ss := s.String()
+
+	assert.Equal(t, "", ss)
+}

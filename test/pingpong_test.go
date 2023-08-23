@@ -15,8 +15,8 @@ func Test_pingpong(t *testing.T) {
 		err error
 	)
 
-	client = network.NewClient(constant.Protocol, constant.DefaultServerUrl)
-	err = client.Connect("", "")
+	client = network.NewClient(constant.Protocol, constant.DefaultServerHost, ":"+constant.DefaultServerPort, "", "")
+	err = client.Connect()
 	if err != nil {
 		t.Errorf("Got err = %v", err)
 	}
