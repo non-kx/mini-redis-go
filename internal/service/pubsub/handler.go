@@ -46,11 +46,11 @@ func handleSubRequest(ctx payload.IRequestContext, body *payload.PubsubRequestBo
 		err error
 	)
 	topic := ctx.GetPubsub(body.Topic)
-	if topic == nil || !topic.DidInit() {
+	if topic == nil || !(*topic).DidInit() {
 		topic = model.NewTopic[*tlv.String](body.Topic)
 		ctx.SetPubsub(body.Topic, topic)
 	}
-	topic.AddConn(ctx.GetConn())
+	(*topic).AddConn(ctx.GetConn())
 
 	err = helper.ResponseWithString("OK", ctx)
 	if err != nil {
@@ -65,7 +65,7 @@ func handlePubRequest(ctx payload.IRequestContext, body *payload.PubsubRequestBo
 	)
 
 	topic := ctx.GetPubsub(body.Topic)
-	if topic == nil || !topic.DidInit() {
+	if topic == nil || !(*topic).DidInit() {
 		topic = model.NewTopic[*tlv.String](body.Topic)
 		ctx.SetPubsub(body.Topic, topic)
 	}

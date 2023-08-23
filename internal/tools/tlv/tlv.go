@@ -62,13 +62,3 @@ func (tlv *TypeLengthValue) GetValue() []byte {
 	}
 	return (*tlv)[5:]
 }
-
-func ReadTLVFromIO[T TLVCompatible](r io.Reader) (*T, error) {
-	tlv := new(T)
-	_, err := (*tlv).ReadFrom(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return tlv, nil
-}

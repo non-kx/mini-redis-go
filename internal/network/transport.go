@@ -8,6 +8,11 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/network/ssl"
 )
 
+type Transporter interface {
+	GetListener(network string, port string, cert string, key string) (net.Listener, error)
+	EstablishConnection(network string, url string, cert string, key string) (net.Conn, error)
+}
+
 func GetListener(network string, port string, cert string, key string) (net.Listener, error) {
 	var (
 		l   net.Listener

@@ -5,6 +5,7 @@
 package mock_payload
 
 import (
+	net "net"
 	reflect "reflect"
 
 	payload "bitbucket.org/non-pn/mini-redis-go/internal/payload"
@@ -48,6 +49,62 @@ func (mr *MockIRequestContextMockRecorder) Error(code, msg interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Error", reflect.TypeOf((*MockIRequestContext)(nil).Error), code, msg)
 }
 
+// GetConn mocks base method.
+func (m *MockIRequestContext) GetConn() net.Conn {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetConn")
+	ret0, _ := ret[0].(net.Conn)
+	return ret0
+}
+
+// GetConn indicates an expected call of GetConn.
+func (mr *MockIRequestContextMockRecorder) GetConn() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConn", reflect.TypeOf((*MockIRequestContext)(nil).GetConn))
+}
+
+// GetPayload mocks base method.
+func (m *MockIRequestContext) GetPayload() *payload.RequestPayload {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPayload")
+	ret0, _ := ret[0].(*payload.RequestPayload)
+	return ret0
+}
+
+// GetPayload indicates an expected call of GetPayload.
+func (mr *MockIRequestContextMockRecorder) GetPayload() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPayload", reflect.TypeOf((*MockIRequestContext)(nil).GetPayload))
+}
+
+// GetPubsub mocks base method.
+func (m *MockIRequestContext) GetPubsub(k string) payload.StringTopic {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPubsub", k)
+	ret0, _ := ret[0].(payload.StringTopic)
+	return ret0
+}
+
+// GetPubsub indicates an expected call of GetPubsub.
+func (mr *MockIRequestContextMockRecorder) GetPubsub(k interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPubsub", reflect.TypeOf((*MockIRequestContext)(nil).GetPubsub), k)
+}
+
+// GetRedis mocks base method.
+func (m *MockIRequestContext) GetRedis(k string) []byte {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRedis", k)
+	ret0, _ := ret[0].([]byte)
+	return ret0
+}
+
+// GetRedis indicates an expected call of GetRedis.
+func (mr *MockIRequestContextMockRecorder) GetRedis(k interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRedis", reflect.TypeOf((*MockIRequestContext)(nil).GetRedis), k)
+}
+
 // Response mocks base method.
 func (m *MockIRequestContext) Response(res payload.ResponsePayload) error {
 	m.ctrl.T.Helper()
@@ -60,4 +117,28 @@ func (m *MockIRequestContext) Response(res payload.ResponsePayload) error {
 func (mr *MockIRequestContextMockRecorder) Response(res interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Response", reflect.TypeOf((*MockIRequestContext)(nil).Response), res)
+}
+
+// SetPubsub mocks base method.
+func (m *MockIRequestContext) SetPubsub(k string, v payload.StringTopic) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetPubsub", k, v)
+}
+
+// SetPubsub indicates an expected call of SetPubsub.
+func (mr *MockIRequestContextMockRecorder) SetPubsub(k, v interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPubsub", reflect.TypeOf((*MockIRequestContext)(nil).SetPubsub), k, v)
+}
+
+// SetRedis mocks base method.
+func (m *MockIRequestContext) SetRedis(k string, v []byte) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetRedis", k, v)
+}
+
+// SetRedis indicates an expected call of SetRedis.
+func (mr *MockIRequestContextMockRecorder) SetRedis(k, v interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRedis", reflect.TypeOf((*MockIRequestContext)(nil).SetRedis), k, v)
 }

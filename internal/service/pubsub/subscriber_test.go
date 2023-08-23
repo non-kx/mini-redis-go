@@ -18,6 +18,17 @@ func getTestSubscriber(t *testing.T) (*Subscriber, *mocknet.MockConn) {
 	}, conn
 }
 
+func TestNewSubscriber(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	conn := mocknet.NewMockConn(ctrl)
+
+	sub := NewSubscriber(conn)
+
+	assert.NotNil(t, sub)
+	assert.NotNil(t, sub.Conn)
+	assert.False(t, sub.IsSubscribed)
+}
+
 func TestNextMesssageIsSubscribe(t *testing.T) {
 	sub, _ := getTestSubscriber(t)
 	sub.IsSubscribed = true

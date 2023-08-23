@@ -2,184 +2,64 @@ package tlv
 
 import (
 	"bytes"
-	"encoding/binary"
-	"io"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func createStringTLV(str string) TypeLengthValue {
-	typ := StringType
+func TestStringReadFrom(t *testing.T) {
+	tests := []byte{2, 0, 0, 0, 4, 116, 101, 115, 116}
+	testreader := bytes.NewReader(tests)
 
-	blen := make([]byte, 4)
-	binary.BigEndian.PutUint32(blen, uint32(len(str)))
+	s := new(String)
+	n, err := s.ReadFrom(testreader)
 
-	buf := []byte{typ}
-	buf = append(buf, append(blen, []byte(str)...)...)
-
-	return TypeLengthValue(buf)
+	assert.Equal(t, len(tests), int(n))
+	assert.Nil(t, err)
+	assert.Equal(t, tests[5:], []byte(*s))
 }
 
-func TestString_ReadFrom(t *testing.T) {
-	str := "test_string"
-	strTlv := createStringTLV(str)
-	invalidStrTlv := append([]byte{BinaryType}, strTlv[1:]...)
+func TestStringReadFromInvalid(t *testing.T) {
+	tests := []byte{1, 0, 0, 0, 4, 116, 101, 115, 116}
+	testreader := bytes.NewReader(tests)
 
-	reader := bytes.NewReader(strTlv)
-	invalidReader := bytes.NewReader(invalidStrTlv)
+	s := new(String)
+	n, err := s.ReadFrom(testreader)
 
-	type args struct {
-		r io.Reader
-	}
-	tests := []struct {
-		name    string
-		s       *String
-		args    args
-		want    int64
-		want2   String
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "should read to correct string",
-			s:    new(String),
-			args: args{
-				r: reader,
-			},
-			want2: String(str),
-			want:  int64(5 + len(str)),
-		},
-		{
-			name: "should return err for invalid type",
-			s:    new(String),
-			args: args{
-				r: invalidReader,
-			},
-			want:    1,
-			want2:   *new(String),
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.s.ReadFrom(tt.args.r)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("String.ReadFrom() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("String.ReadFrom() = %v, want %v", got, tt.want)
-			}
-			if *tt.s != String(tt.want2) {
-				t.Errorf("String.ReadFrom() = %v, want %v", *tt.s, String(tt.want2))
-			}
-		})
-	}
+	assert.Equal(t, 1, int(n))
+	assert.NotNil(t, err)
 }
 
-func TestString_WriteTo(t *testing.T) {
-	s := "test_string"
-	str := String(s)
-	getStr := func(tlv TypeLengthValue) string {
-		len := tlv.GetLength()
-		if len > 0 {
-			return string(tlv.GetValue())
-		}
+func TestStringWriteTo(t *testing.T) {
+	tests := []byte{2, 0, 0, 0, 4, 116, 101, 115, 116}
+	testwriter := new(bytes.Buffer)
 
-		return ""
-	}
+	s := String(tests[5:])
+	n, err := s.WriteTo(testwriter)
 
-	tests := []struct {
-		name    string
-		s       *String
-		want    int64
-		wantW   string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-		{
-			name:    "should write string correctly",
-			s:       &str,
-			want:    int64(5 + len(str)),
-			wantW:   s,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := &bytes.Buffer{}
-			got, err := tt.s.WriteTo(w)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("String.WriteTo() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("String.WriteTo() = %v, want %v", got, tt.want)
-			}
-			if gotW := getStr(w.Bytes()); gotW != tt.wantW {
-				t.Errorf("String.WriteTo() = %v, want %v", gotW, tt.wantW)
-			}
-		})
-	}
+	buf := testwriter.Bytes()
+
+	assert.Equal(t, len(tests), int(n))
+	assert.Nil(t, err)
+	assert.Equal(t, buf, tests)
 }
 
-func TestString_FromTLV(t *testing.T) {
-	type args struct {
-		tlv TypeLengthValue
-	}
-	tests := []struct {
-		name    string
-		s       *String
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.s.FromTLV(tt.args.tlv); (err != nil) != tt.wantErr {
-				t.Errorf("String.FromTLV() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
+func TestStringFromTLV(t *testing.T) {
+	tlv := []byte{2, 0, 0, 0, 4, 116, 101, 115, 116}
+	s := new(String)
+
+	err := s.FromTLV(tlv)
+
+	assert.Nil(t, err)
+	assert.Equal(t, string(tlv[5:]), s.String())
 }
 
-func TestString_ToTLV(t *testing.T) {
-	tests := []struct {
-		name    string
-		s       *String
-		want    TypeLengthValue
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.s.ToTLV()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("String.ToTLV() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("String.ToTLV() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+func TestStringToTLV(t *testing.T) {
+	testtlv := []byte{2, 0, 0, 0, 4, 116, 101, 115, 116}
+	s := String(testtlv[5:])
 
-func TestString_String(t *testing.T) {
-	tests := []struct {
-		name string
-		s    *String
-		want string
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.s.String(); got != tt.want {
-				t.Errorf("String.String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	tlv, err := s.ToTLV()
+
+	assert.Nil(t, err)
+	assert.Equal(t, testtlv, []byte(tlv))
 }

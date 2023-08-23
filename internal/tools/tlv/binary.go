@@ -3,6 +3,7 @@ package tlv
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 )
 
@@ -24,6 +25,10 @@ func (b *Binary) ReadFrom(r io.Reader) (int64, error) {
 	}
 
 	n += 1
+
+	if typ != BinaryType {
+		return n, errors.New("Invalid Binary")
+	}
 
 	err = binary.Read(r, binary.BigEndian, &len)
 	if err != nil {
@@ -62,12 +67,15 @@ func (b *Binary) WriteTo(w io.Writer) (int64, error) {
 
 	err = binary.Write(w, binary.BigEndian, uint32(len))
 	if err != nil {
-		return 0, err
+		return n, err
 	}
 
 	n += 4
 
 	o, err := w.Write([]byte(*b))
+	if err != nil {
+		return n, err
+	}
 
 	n += int64(o)
 

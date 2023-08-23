@@ -10,6 +10,8 @@ import (
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
+type StringTopic *model.Topic[*tlv.String]
+
 type IRequestContext interface {
 	Response(res ResponsePayload) error
 	Error(code uint16, msg string) error
@@ -17,8 +19,8 @@ type IRequestContext interface {
 	GetPayload() *RequestPayload
 	GetRedis(k string) []byte
 	SetRedis(k string, v []byte)
-	GetPubsub(k string) *model.Topic[*tlv.String]
-	SetPubsub(k string, v *model.Topic[*tlv.String])
+	GetPubsub(k string) StringTopic
+	SetPubsub(k string, v StringTopic)
 }
 
 type RequestContext struct {
@@ -41,7 +43,7 @@ func (ctx *RequestContext) Response(res ResponsePayload) error {
 
 func (ctx *RequestContext) Error(code uint16, msg string) error {
 	tlvErr := tlv.NewError(code, msg)
-	err := tlvErr.WriteToIO(ctx.Conn)
+	_, err := tlvErr.WriteTo(ctx.Conn)
 	if err != nil {
 		return err
 	}
@@ -63,9 +65,9 @@ func (ctx *RequestContext) GetRedis(k string) []byte {
 func (ctx *RequestContext) SetRedis(k string, v []byte) {
 	ctx.RedisDb.Set(k, v)
 }
-func (ctx *RequestContext) GetPubsub(k string) *model.Topic[*tlv.String] {
+func (ctx *RequestContext) GetPubsub(k string) StringTopic {
 	return ctx.PubsubDb.Get(k)
 }
-func (ctx *RequestContext) SetPubsub(k string, v *model.Topic[*tlv.String]) {
+func (ctx *RequestContext) SetPubsub(k string, v StringTopic) {
 	ctx.PubsubDb.Set(k, v)
 }

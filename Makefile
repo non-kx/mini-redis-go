@@ -8,6 +8,7 @@ test-coverage:
 	gocov test \
         ./internal/db/... \
         ./internal/network/... \
+		./internal/payload/... \
         ./internal/service/... \
 		./internal/tools/... \
 		./pkg/... \

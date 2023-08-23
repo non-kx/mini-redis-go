@@ -3,9 +3,8 @@ package network
 import (
 	"net"
 
-	"bitbucket.org/non-pn/mini-redis-go/internal/service/pingpong"
+	"bitbucket.org/non-pn/mini-redis-go/internal/service"
 	"bitbucket.org/non-pn/mini-redis-go/internal/service/pubsub"
-	"bitbucket.org/non-pn/mini-redis-go/internal/service/redis"
 	"bitbucket.org/non-pn/mini-redis-go/internal/tools/tlv"
 )
 
@@ -19,6 +18,7 @@ type Client struct {
 	Network    string
 	Host       string
 	Connection net.Conn
+	Service    service.IService
 }
 
 func (c *Client) Connect(cert string, key string) error {
@@ -44,7 +44,7 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Ping(msg *string) (string, error) {
-	resp, err := pingpong.SendPingRequest(c.Connection, msg)
+	resp, err := c.Service.SendPingRequest(c.Connection, msg)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +53,7 @@ func (c *Client) Ping(msg *string) (string, error) {
 }
 
 func (c *Client) Get(k string) (tlv.TLVCompatible, error) {
-	resp, err := redis.SendGetRequest(c.Connection, k)
+	resp, err := c.Service.SendGetRequest(c.Connection, k)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (c *Client) Set(k string, v tlv.TLVCompatible) (string, error) {
 		return "", err
 	}
 
-	resp, err := redis.SendSetRequest(c.Connection, k, raw)
+	resp, err := c.Service.SendSetRequest(c.Connection, k, raw)
 	if err != nil {
 		return "", err
 	}
@@ -80,7 +80,7 @@ func (c *Client) Set(k string, v tlv.TLVCompatible) (string, error) {
 }
 
 func (c *Client) Sub(topic string) (*pubsub.Subscriber, error) {
-	sub, err := pubsub.SendSubRequest(c.Connection, topic)
+	sub, err := c.Service.SendSubRequest(c.Connection, topic)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (c *Client) Pub(topic string, msg string) (string, error) {
 		return "", err
 	}
 
-	resp, err := pubsub.SendPubRequest(c.Connection, topic, raw)
+	resp, err := c.Service.SendPubRequest(c.Connection, topic, raw)
 	if err != nil {
 		return "", err
 	}
@@ -108,5 +108,6 @@ func NewClient(network string, host string) *Client {
 		Network:    network,
 		Host:       host,
 		Connection: nil,
+		Service:    &service.Service{},
 	}
 }

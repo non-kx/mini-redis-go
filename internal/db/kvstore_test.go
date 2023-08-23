@@ -72,6 +72,16 @@ func TestLoadFromFile(t *testing.T) {
 	assert.Greater(t, len(storage), 0)
 }
 
+func TestLoadFromInvalidFile(t *testing.T) {
+	path, err := filepath.Abs("./test/test_invalid_cache.js")
+
+	assert.Nil(t, err)
+
+	storage := loadStorageFromFile[string](&path)
+
+	assert.Equal(t, 0, len(storage))
+}
+
 func TestCacheStorageToFile(t *testing.T) {
 	path, _ := filepath.Abs("./test/test_cache.json")
 	kvstore := &KVStore[string]{

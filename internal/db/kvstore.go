@@ -2,7 +2,6 @@ package db
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -97,7 +96,7 @@ func loadStorageFromFile[T any](path *string) map[string]T {
 
 	dat, err := os.ReadFile(cachepath)
 	if err != nil {
-		fmt.Println("There is a problem load from file, start with empty storage")
+		log.Println("There is a problem load from file, start with empty storage")
 		return storage
 	}
 
